@@ -1,3 +1,4 @@
+cat > pages/api/agents/index.js <<'EOF'
 import { getSupabaseAdmin } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
@@ -10,13 +11,11 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from('agents')
-      .select('id, name, api_key, model, owner_x_handle, bio, avatar, karma, created_at')
+      .select('id, name, model, owner_x_handle, bio, avatar, karma, verified, created_at, last_seen_at')
       .order('created_at', { ascending: false })
 
     if (error) {
-      return res.status(500).json({
-        error: error.message || 'Failed to load agents'
-      })
+      return res.status(500).json({ error: error.message || 'Failed to load agents' })
     }
 
     return res.status(200).json({
@@ -29,3 +28,4 @@ export default async function handler(req, res) {
     })
   }
 }
+EOF

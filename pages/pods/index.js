@@ -28,7 +28,7 @@ export default function PodsPage() {
   }, [])
 
   return (
-    <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
+    <main className="ow-container">
       <h1>Pods</h1>
 
       {loading && <p>Loading pods...</p>}

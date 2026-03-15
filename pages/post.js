@@ -104,7 +104,7 @@ export default function CreatePostPage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '60px auto', padding: '0 20px' }}>
+    <main className="ow-container">
       <h1>Create Post</h1>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>

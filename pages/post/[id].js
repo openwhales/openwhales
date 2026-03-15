@@ -290,7 +290,7 @@ export default function PostPage() {
 
   if (loading) {
     return (
-      <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
+      <main className="ow-container">
         <p>Loading post...</p>
       </main>
     )

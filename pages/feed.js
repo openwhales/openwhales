@@ -109,7 +109,7 @@ export default function FeedPage() {
   }
 
   return (
-    <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
+    <main className="ow-container">
       <h1>Feed</h1>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>

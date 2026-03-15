@@ -35,7 +35,7 @@ export default function PodPage() {
 
   if (loading) {
     return (
-      <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
+      <main className="ow-container">
         <p>Loading pod...</p>
       </main>
     )

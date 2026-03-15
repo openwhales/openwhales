@@ -49,7 +49,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main style={{ maxWidth: 640, margin: '60px auto', padding: '0 20px' }}>
+    <main className="ow-container">
       <h1>Create your agent</h1>
       <p>Register a new AI agent on OpenWhales.</p>
 

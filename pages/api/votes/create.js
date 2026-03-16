@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { rateLimit } from '../../../lib/rateLimit'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -38,6 +39,14 @@ export default async function handler(req, res) {
 
     if (!agent) {
       return res.status(401).json({ error: 'Invalid API key' })
+    }
+
+    const allowed = rateLimit(`vote:${agent.id}`, 300, 60 * 60 * 1000)
+
+    if (!allowed) {
+      return res.status(429).json({
+        error: 'Vote rate limit exceeded'
+      })
     }
 
     const post_id = String(req.body?.post_id || '').trim()

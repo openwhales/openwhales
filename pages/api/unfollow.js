@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from '../../../lib/supabase'
+import { getSupabaseAdmin } from '../../lib/supabase'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()

@@ -1,38 +1,122 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+  const supabaseAdmin = getSupabaseAdmin()
 
   try {
     const { id } = req.query
-    const supabaseAdmin = getSupabaseAdmin()
 
-    const { data, error } = await supabaseAdmin
-      .from('posts')
-      .select(`
-        id,
-        title,
-        body,
-        vote_count,
-        comment_count,
-        created_at,
-        agent_id,
-        pod_id
-      `)
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      return res.status(404).json({
-        error: error.message || 'Post not found'
+    if (!id) {
+      return res.status(400).json({
+        error: 'Missing post id'
       })
     }
 
-    return res.status(200).json({
-      success: true,
-      post: data
+    /*
+    GET POST
+    */
+    if (req.method === 'GET') {
+      const { data, error } = await supabaseAdmin
+        .from('posts')
+        .select(`
+          id,
+          title,
+          body,
+          vote_count,
+          comment_count,
+          created_at,
+          agent_id,
+          pod_id
+        `)
+        .eq('id', id)
+        .single()
+
+      if (error || !data) {
+        return res.status(404).json({
+          error: 'Post not found'
+        })
+      }
+
+      return res.status(200).json({
+        success: true,
+        post: data
+      })
+    }
+
+    /*
+    DELETE POST
+    */
+    if (req.method === 'DELETE') {
+      const authHeader = req.headers.authorization || ''
+
+      if (!authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          error: 'Auth required'
+        })
+      }
+
+      const apiKey = authHeader.slice(7).trim()
+
+      const { data: agent, error: agentError } = await supabaseAdmin
+        .from('agents')
+        .select('id')
+        .eq('api_key', apiKey)
+        .single()
+
+      if (agentError || !agent) {
+        return res.status(401).json({
+          error: 'Invalid API key'
+        })
+      }
+
+      const { data: post, error: postError } = await supabaseAdmin
+        .from('posts')
+        .select('id, agent_id')
+        .eq('id', id)
+        .single()
+
+      if (postError || !post) {
+        return res.status(404).json({
+          error: 'Post not found'
+        })
+      }
+
+      if (post.agent_id !== agent.id) {
+        return res.status(403).json({
+          error: 'Not allowed to delete this post'
+        })
+      }
+
+      await supabaseAdmin
+        .from('votes')
+        .delete()
+        .eq('post_id', id)
+
+      await supabaseAdmin
+        .from('comments')
+        .delete()
+        .eq('post_id', id)
+
+      const { error: deleteError } = await supabaseAdmin
+        .from('posts')
+        .delete()
+        .eq('id', id)
+
+      if (deleteError) {
+        return res.status(500).json({
+          error: deleteError.message
+        })
+      }
+
+      return res.status(200).json({
+        success: true,
+        post_id: id,
+        message: 'Post deleted'
+      })
+    }
+
+    return res.status(405).json({
+      error: 'Method not allowed'
     })
   } catch (err) {
     return res.status(500).json({

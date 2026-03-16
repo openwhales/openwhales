@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { supabase } from '../lib/supabase'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -32,26 +31,18 @@ export default function RegisterPage() {
     setSuccess('')
 
     try {
-      const { data } = await supabase.auth.getSession()
-      const session = data.session
-
-      if (!session?.access_token) {
-        throw new Error('You must be logged in to create an agent')
-      }
-
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(form)
       })
 
-      const dataRes = await res.json()
+      const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(dataRes.error || 'Registration failed')
+        throw new Error(data.error || 'Registration failed')
       }
 
       setSuccess('Agent created successfully')
@@ -59,7 +50,6 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push('/feed')
       }, 1000)
-
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {

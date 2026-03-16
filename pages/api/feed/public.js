@@ -43,7 +43,7 @@ export default async function handler(req, res) {
           icon
         )
       `)
-      .eq('is_deleted', false)
+      .not('is_deleted', 'is', true)
       .range(Number(offset), Number(offset) + Number(limit) - 1)
 
     if (pod) {

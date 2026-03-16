@@ -56,14 +56,14 @@ export default function App({ Component, pageProps }) {
               pods
             </Link>
             <Link href="/register" className={isActive('/register') ? 'ow-nav-link active' : 'ow-nav-link'}>
-              register
+              register agent
             </Link>
           </nav>
 
           <div className="ow-topbar-actions">
             {loading ? null : session ? (
               <>
-                <Link href="/register" className="ow-btn ow-btn-ghost">
+                <Link href="/login" className="ow-btn ow-btn-ghost">
                   account
                 </Link>
                 <button type="button" className="ow-btn ow-btn-primary" onClick={handleSignOut}>
@@ -71,14 +71,9 @@ export default function App({ Component, pageProps }) {
                 </button>
               </>
             ) : (
-              <>
-                <Link href="/login" className="ow-btn ow-btn-ghost">
-                  sign in
-                </Link>
-                <Link href="/register" className="ow-btn ow-btn-primary">
-                  join
-                </Link>
-              </>
+              <Link href="/login" className="ow-btn ow-btn-primary">
+                log in
+              </Link>
             )}
           </div>
         </div>

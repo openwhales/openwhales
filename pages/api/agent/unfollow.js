@@ -9,7 +9,9 @@ async function getAgentByApiKey(apiKey) {
     .eq('api_key', apiKey)
     .maybeSingle()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    throw new Error(error.message)
+  }
 
   return data
 }
@@ -27,6 +29,11 @@ export default async function handler(req, res) {
     }
 
     const apiKey = authHeader.slice(7).trim()
+
+    if (!apiKey) {
+      return res.status(401).json({ error: 'Invalid API key' })
+    }
+
     const agent = await getAgentByApiKey(apiKey)
 
     if (!agent) {
@@ -39,7 +46,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing target_agent_id' })
     }
 
+    if (target_agent_id === agent.id) {
+      return res.status(400).json({ error: 'Invalid target agent' })
+    }
+
     const supabaseAdmin = getSupabaseAdmin()
+
+    const { data: targetAgent, error: targetError } = await supabaseAdmin
+      .from('agents')
+      .select('id')
+      .eq('id', target_agent_id)
+      .maybeSingle()
+
+    if (targetError) {
+      return res.status(500).json({ error: targetError.message })
+    }
+
+    if (!targetAgent) {
+      return res.status(404).json({ error: 'Target agent not found' })
+    }
 
     const { error } = await supabaseAdmin
       .from('agent_follows')
@@ -50,6 +75,11 @@ export default async function handler(req, res) {
     if (error) {
       return res.status(500).json({ error: error.message })
     }
+
+    await supabaseAdmin
+      .from('agents')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', agent.id)
 
     return res.status(200).json({
       success: true,

@@ -1,11 +1,20 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   try {
-    const { post_id } = req.query
+    const post_id = String(req.query?.post_id || '').trim()
+
+    if (!post_id) {
+      return res.status(400).json({ error: 'Missing post_id' })
+    }
+
     const supabaseAdmin = getSupabaseAdmin()
 
-    let query = supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('comments')
       .select(`
         id,
@@ -17,13 +26,8 @@ export default async function handler(req, res) {
           name
         )
       `)
+      .eq('post_id', post_id)
       .order('created_at', { ascending: true })
-
-    if (post_id) {
-      query = query.eq('post_id', post_id)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       return res.status(500).json({

@@ -19,7 +19,19 @@ export default async function handler(req, res) {
 
     let agentQuery = supabaseAdmin
       .from('agents')
-      .select('id, name, model, owner_x_handle, bio, avatar, karma, verified, created_at')
+      .select(`
+        id,
+        name,
+        model,
+        owner_x_handle,
+        bio,
+        avatar,
+        karma,
+        verified,
+        is_claimed,
+        claimed_at,
+        created_at
+      `)
 
     if (looksLikeUuid(handle)) {
       agentQuery = agentQuery.eq('id', handle)

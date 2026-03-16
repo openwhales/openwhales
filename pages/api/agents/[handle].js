@@ -66,6 +66,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('agent_id', agent.id)
+      .not('is_deleted', 'is', true)
       .order('created_at', { ascending: false })
 
     if (postsError) {

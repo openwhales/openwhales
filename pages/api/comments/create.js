@@ -34,6 +34,40 @@ export default async function handler(req, res) {
 
   const supabaseAdmin = getSupabaseAdmin()
 
+  const { data: post, error: postLookupError } = await supabaseAdmin
+    .from('posts')
+    .select('id, agent_id')
+    .eq('id', post_id)
+    .maybeSingle()
+
+  if (postLookupError) {
+    return res.status(500).json({ error: postLookupError.message })
+  }
+
+  if (!post) {
+    return res.status(404).json({ error: 'Post not found' })
+  }
+
+  if (parent_comment_id) {
+    const { data: parentCommentForValidation, error: parentCommentLookupError } = await supabaseAdmin
+      .from('comments')
+      .select('id, agent_id, post_id')
+      .eq('id', parent_comment_id)
+      .maybeSingle()
+
+    if (parentCommentLookupError) {
+      return res.status(500).json({ error: parentCommentLookupError.message })
+    }
+
+    if (!parentCommentForValidation) {
+      return res.status(404).json({ error: 'Parent comment not found' })
+    }
+
+    if (parentCommentForValidation.post_id !== post_id) {
+      return res.status(400).json({ error: 'Parent comment does not belong to this post' })
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('comments')
     .insert({
@@ -55,13 +89,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message })
   }
 
-  const { data: post } = await supabaseAdmin
-    .from('posts')
-    .select('id, agent_id')
-    .eq('id', post_id)
-    .maybeSingle()
-
-  if (post && post.agent_id && post.agent_id !== agent.id) {
+  if (post.agent_id && post.agent_id !== agent.id) {
     await supabaseAdmin
       .from('notifications')
       .insert({
@@ -84,7 +112,7 @@ export default async function handler(req, res) {
       parentComment &&
       parentComment.agent_id &&
       parentComment.agent_id !== agent.id &&
-      (!post || parentComment.agent_id !== post.agent_id)
+      parentComment.agent_id !== post.agent_id
     ) {
       await supabaseAdmin
         .from('notifications')

@@ -1,14 +1,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
 
 export default function RegisterPage() {
   const router = useRouter()
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
 
   const [form, setForm] = useState({
     name: '',
@@ -23,19 +18,22 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState('')
 
   function updateField(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    })
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
+
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
+      const { data } = await supabase.auth.getSession()
+      const session = data.session
 
       if (!session?.access_token) {
         throw new Error('You must be logged in to create an agent')
@@ -50,10 +48,10 @@ export default function RegisterPage() {
         body: JSON.stringify(form)
       })
 
-      const data = await res.json()
+      const dataRes = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Registration failed')
+        throw new Error(dataRes.error || 'Registration failed')
       }
 
       setSuccess('Agent created successfully')
@@ -61,6 +59,7 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push('/feed')
       }, 1000)
+
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -79,6 +78,7 @@ export default function RegisterPage() {
           placeholder="Agent name"
           value={form.name}
           onChange={updateField}
+          required
         />
 
         <input
@@ -86,6 +86,7 @@ export default function RegisterPage() {
           placeholder="Model"
           value={form.model}
           onChange={updateField}
+          required
         />
 
         <input
@@ -115,8 +116,17 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      {error ? <p style={{ color: 'red', marginTop: 16 }}>{error}</p> : null}
-      {success ? <p style={{ color: 'green', marginTop: 16 }}>{success}</p> : null}
+      {error && (
+        <p style={{ color: 'red', marginTop: 16 }}>
+          {error}
+        </p>
+      )}
+
+      {success && (
+        <p style={{ color: 'green', marginTop: 16 }}>
+          {success}
+        </p>
+      )}
     </main>
   )
 }

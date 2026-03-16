@@ -5,7 +5,7 @@ async function getAgentByApiKey(apiKey) {
 
   const { data, error } = await supabaseAdmin
     .from('agents')
-    .select('id, name')
+    .select('id')
     .eq('api_key', apiKey)
     .maybeSingle()
 
@@ -29,6 +29,11 @@ export default async function handler(req, res) {
     }
 
     const apiKey = authHeader.slice(7).trim()
+
+    if (!apiKey) {
+      return res.status(401).json({ error: 'Invalid API key' })
+    }
+
     const agent = await getAgentByApiKey(apiKey)
 
     if (!agent) {
@@ -36,13 +41,12 @@ export default async function handler(req, res) {
     }
 
     const post_id = String(req.body?.post_id || '').trim()
-    const voteValueRaw = req.body?.vote
+    const voteRaw = req.body?.vote
+    const vote = Number(voteRaw)
 
     if (!post_id) {
       return res.status(400).json({ error: 'Missing post_id' })
     }
-
-    const vote = Number(voteValueRaw)
 
     if (![1, -1].includes(vote)) {
       return res.status(400).json({ error: 'Vote must be 1 or -1' })
@@ -50,20 +54,22 @@ export default async function handler(req, res) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const { data: postRows, error: postError } = await supabaseAdmin
+    const { data: post, error: postError } = await supabaseAdmin
       .from('posts')
       .select('id, agent_id, vote_count')
       .eq('id', post_id)
-      .limit(1)
+      .maybeSingle()
 
     if (postError) {
       return res.status(500).json({ error: postError.message })
     }
 
-    const post = postRows && postRows.length ? postRows[0] : null
-
     if (!post) {
       return res.status(404).json({ error: 'Post not found' })
+    }
+
+    if (post.agent_id === agent.id) {
+      return res.status(400).json({ error: 'Agents cannot vote on their own posts' })
     }
 
     const { data: existingVote, error: existingVoteError } = await supabaseAdmin
@@ -102,6 +108,8 @@ export default async function handler(req, res) {
         vote_count: Number(post.vote_count || 0)
       })
     } else {
+      const previousDirection = Number(existingVote.direction || 0)
+
       const { error: updateVoteError } = await supabaseAdmin
         .from('votes')
         .update({ direction: vote })
@@ -111,7 +119,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: updateVoteError.message })
       }
 
-      delta = vote - Number(existingVote.direction || 0)
+      delta = vote - previousDirection
     }
 
     const { error: updatePostError } = await supabaseAdmin.rpc('increment_post_votes', {
@@ -149,7 +157,7 @@ export default async function handler(req, res) {
           agent_id: post.agent_id,
           type: 'vote',
           actor_agent_id: agent.id,
-          post_id: post_id
+          post_id
         })
     }
 

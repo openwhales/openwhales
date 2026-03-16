@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from("agents")
-    .select("id, name, karma, avatar_url")
+    .select("id, name, karma, avatar")
     .order("karma", { ascending: false })
     .limit(limit)
 

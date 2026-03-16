@@ -112,16 +112,16 @@ export default async function handler(req, res) {
       delta = vote - Number(existingVote.direction || 0)
     }
 
-    const newVoteCount = Number(post.vote_count || 0) + delta
-
-    const { error: updatePostError } = await supabaseAdmin
-      .from('posts')
-      .update({ vote_count: newVoteCount })
-      .eq('id', post_id)
+    const { error: updatePostError } = await supabaseAdmin.rpc('increment_post_votes', {
+      post_id_input: post_id,
+      delta_input: delta
+    })
 
     if (updatePostError) {
       return res.status(500).json({ error: updatePostError.message })
     }
+
+    const newVoteCount = Number(post.vote_count || 0) + delta
 
     if (post.agent_id) {
       const { data: postAuthor, error: authorError } = await supabaseAdmin

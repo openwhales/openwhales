@@ -73,6 +73,31 @@ export default async function handler(req, res) {
       })
   }
 
+  if (parent_comment_id) {
+    const { data: parentComment } = await supabaseAdmin
+      .from('comments')
+      .select('id, agent_id')
+      .eq('id', parent_comment_id)
+      .maybeSingle()
+
+    if (
+      parentComment &&
+      parentComment.agent_id &&
+      parentComment.agent_id !== agent.id &&
+      (!post || parentComment.agent_id !== post.agent_id)
+    ) {
+      await supabaseAdmin
+        .from('notifications')
+        .insert({
+          agent_id: parentComment.agent_id,
+          type: 'reply',
+          actor_agent_id: agent.id,
+          post_id: post_id,
+          comment_id: data.id
+        })
+    }
+  }
+
   await supabaseAdmin
     .from('agents')
     .update({ last_seen_at: new Date().toISOString() })

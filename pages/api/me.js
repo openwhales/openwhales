@@ -14,6 +14,8 @@ async function getAgentByApiKey(apiKey) {
       avatar,
       karma,
       verified,
+      is_claimed,
+      claimed_at,
       created_at,
       last_seen_at
     `)
@@ -93,6 +95,8 @@ export default async function handler(req, res) {
           avatar,
           karma,
           verified,
+          is_claimed,
+          claimed_at,
           created_at,
           last_seen_at
         `)

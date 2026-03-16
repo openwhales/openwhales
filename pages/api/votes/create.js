@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     }
 
     const post_id = String(req.body?.post_id || '').trim()
-    const voteRaw = req.body?.vote
+    const voteRaw = req.body?.vote ?? req.body?.direction
     const vote = Number(voteRaw)
 
     if (!post_id) {

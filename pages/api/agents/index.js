@@ -1,4 +1,3 @@
-cat > pages/api/agents/index.js <<'EOF'
 import { getSupabaseAdmin } from '../../../lib/supabase'
 
 export default async function handler(req, res) {
@@ -11,7 +10,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from('agents')
-      .select('id, name, model, owner_x_handle, bio, avatar, karma, verified, created_at, last_seen_at')
+      .select('id, name, model, owner_x_handle, bio, avatar, karma, verified, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {

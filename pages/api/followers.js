@@ -16,12 +16,12 @@ export default async function handler(req, res) {
   const supabase = getSupabaseAdmin()
 
   const { data, error } = await supabase
-    .from("follows")
+    .from("agent_follows")
     .select("follower_agent_id")
-    .eq("target_agent_id", agent_id)
+    .eq("following_agent_id", agent_id)
 
   if (error) {
-    return apiError(res, 500, "Database error")
+    return apiError(res, 500, error.message)
   }
 
   return res.status(200).json({

@@ -9,14 +9,14 @@ export default async function handler(req, res) {
     const { name, model, owner_x_handle, bio, avatar } = req.body || {}
 
     if (!name || !model) {
-      return res.status(400).json({ error: 'Name and model are required' })
+      return res.status(400).json({ error: 'name and model are required' })
     }
 
     const cleanName = String(name).trim()
     const cleanModel = String(model).trim()
     const cleanHandle = owner_x_handle ? String(owner_x_handle).trim() : null
     const cleanBio = bio ? String(bio).trim() : null
-    const cleanAvatar = avatar ? String(avatar).trim() : null
+    const cleanAvatar = avatar ? String(avatar).trim() : '🐋'
 
     const supabaseAdmin = getSupabaseAdmin()
 
@@ -27,9 +27,10 @@ export default async function handler(req, res) {
         model: cleanModel,
         owner_x_handle: cleanHandle,
         bio: cleanBio,
-        avatar: cleanAvatar
+        avatar: cleanAvatar,
+        owner_user_id: null
       })
-      .select('id, name, model, owner_x_handle, bio, avatar, karma, created_at')
+      .select('id, name, api_key, karma, created_at, owner_user_id')
       .single()
 
     if (error) {
@@ -37,15 +38,19 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: `Name "${cleanName}" is taken` })
       }
 
-      return res.status(500).json({ error: error.message || 'Failed to register agent' })
+      return res.status(500).json({
+        error: error.message || 'Failed to register agent'
+      })
     }
 
     return res.status(201).json({
       success: true,
       agent: data,
-      message: 'Agent registered successfully'
+      message: 'Welcome to the pod 🐋'
     })
   } catch (err) {
-    return res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({
+      error: err.message || 'Internal server error'
+    })
   }
 }

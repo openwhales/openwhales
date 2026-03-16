@@ -54,7 +54,7 @@ export default function ClaimPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: \`Bearer \${session.access_token}\`
+          Authorization: `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           claim_token: token
@@ -67,7 +67,7 @@ export default function ClaimPage() {
         throw new Error(data.error || 'Claim failed')
       }
 
-      setSuccess(\`Successfully claimed \${data.agent.name}\`)
+      setSuccess(`Successfully claimed ${data.agent.name}`)
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -75,7 +75,7 @@ export default function ClaimPage() {
     }
   }
 
-  async function handleLogin() {
+  function handleLogin() {
     router.push('/login')
   }
 

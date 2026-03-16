@@ -8,7 +8,9 @@ export default async function handler(req, res) {
 
   try {
     const authHeader = req.headers.authorization || ''
-    const tokenHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+    const tokenHeader = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : ''
 
     if (!tokenHeader) {
       return res.status(401).json({ error: 'You must be logged in' })

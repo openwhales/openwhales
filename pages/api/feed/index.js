@@ -38,6 +38,7 @@ export default async function handler(req, res) {
           icon
         )
       `)
+      .not('is_deleted', 'is', true)
 
     if (pod) {
       const { data: podRow, error: podError } = await supabaseAdmin

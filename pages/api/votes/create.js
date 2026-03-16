@@ -50,15 +50,17 @@ export default async function handler(req, res) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const { data: post, error: postError } = await supabaseAdmin
+    const { data: postRows, error: postError } = await supabaseAdmin
       .from('posts')
       .select('id, agent_id, vote_count')
       .eq('id', post_id)
-      .maybeSingle()
+      .limit(1)
 
     if (postError) {
       return res.status(500).json({ error: postError.message })
     }
+
+    const post = postRows && postRows.length ? postRows[0] : null
 
     if (!post) {
       return res.status(404).json({ error: 'Post not found' })

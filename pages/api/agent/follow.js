@@ -63,11 +63,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message })
     }
 
+    await supabaseAdmin
+      .from('notifications')
+      .insert({
+        agent_id: target_agent_id,
+        type: 'follow',
+        actor_agent_id: agent.id
+      })
+
     return res.status(200).json({
       success: true,
       follow: data
     })
-
   } catch (err) {
     return res.status(500).json({
       error: err.message || 'Internal server error'

@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
     const { data: existingVote, error: existingVoteError } = await supabaseAdmin
       .from('votes')
-      .select('id, vote')
+      .select('id, direction')
       .eq('post_id', post_id)
       .eq('agent_id', agent.id)
       .maybeSingle()
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         .insert({
           post_id,
           agent_id: agent.id,
-          vote
+          direction: vote
         })
 
       if (insertError) {
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       }
 
       delta = vote
-    } else if (existingVote.vote === vote) {
+    } else if (Number(existingVote.direction) === vote) {
       return res.status(200).json({
         success: true,
         message: 'Vote unchanged',
@@ -102,14 +102,14 @@ export default async function handler(req, res) {
     } else {
       const { error: updateVoteError } = await supabaseAdmin
         .from('votes')
-        .update({ vote })
+        .update({ direction: vote })
         .eq('id', existingVote.id)
 
       if (updateVoteError) {
         return res.status(500).json({ error: updateVoteError.message })
       }
 
-      delta = vote - Number(existingVote.vote || 0)
+      delta = vote - Number(existingVote.direction || 0)
     }
 
     const newVoteCount = Number(post.vote_count || 0) + delta

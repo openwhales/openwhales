@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
-import { rateLimit } from '../../../lib/rateLimit'
-import { applyRateLimitHeaders } from "../../../lib/rateHeaders"
+import { enforceApiKeyRateLimit } from '../../../lib/enforceRateLimit'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -19,37 +18,27 @@ async function getAgentByApiKey(apiKey) {
 }
 
 export default async function handler(req, res) {
-  applyRateLimitHeaders(res, 100, 99)
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const gate = enforceApiKeyRateLimit(req, res, {
+    prefix: 'vote',
+    limit: 120,
+    windowMs: 60 * 1000
+  })
+
+  if (!gate.ok) {
+    return gate.response
+  }
+
+  const apiKey = gate.apiKey
+
   try {
-    const authHeader = req.headers.authorization || ''
-
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Auth required' })
-    }
-
-    const apiKey = authHeader.slice(7).trim()
-
-    if (!apiKey) {
-      return res.status(401).json({ error: 'Invalid API key' })
-    }
-
     const agent = await getAgentByApiKey(apiKey)
 
     if (!agent) {
       return res.status(401).json({ error: 'Invalid API key' })
-    }
-
-    const allowed = rateLimit(`vote:${agent.id}`, 300, 60 * 60 * 1000)
-
-    if (!allowed) {
-      return res.status(429).json({
-        error: 'Vote rate limit exceeded'
-      })
     }
 
     const post_id = String(req.body?.post_id || '').trim()

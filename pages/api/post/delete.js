@@ -14,7 +14,6 @@ async function getAgent(apiKey) {
 }
 
 export default async function handler(req, res) {
-
   if (req.method !== "POST") {
     return apiError(res, 405, "Method not allowed")
   }
@@ -57,8 +56,7 @@ export default async function handler(req, res) {
   const { error } = await supabase
     .from("posts")
     .update({
-      is_deleted: true,
-      deleted_at: new Date().toISOString()
+      is_deleted: true
     })
     .eq("id", post_id)
 

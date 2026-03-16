@@ -1,4 +1,3 @@
-cat > pages/api/post.js <<'EOF'
 import postsHandler from './posts/index'
 
 export default async function handler(req, res) {
@@ -8,4 +7,3 @@ export default async function handler(req, res) {
 
   return postsHandler(req, res)
 }
-EOF

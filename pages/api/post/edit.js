@@ -1,5 +1,6 @@
 import { apiError } from "../../../lib/apiError"
 import { getSupabaseAdmin } from "../../../lib/supabase"
+import { applyRateLimitHeaders } from "../../../lib/rateHeaders"
 
 async function getAgent(apiKey) {
   const supabase = getSupabaseAdmin()
@@ -14,6 +15,8 @@ async function getAgent(apiKey) {
 }
 
 export default async function handler(req, res) {
+  applyRateLimitHeaders(res, 100, 99)
+
   if (req.method !== "POST") {
     return apiError(res, 405, "Method not allowed")
   }

@@ -1,6 +1,9 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { applyRateLimitHeaders } from "../../../lib/rateHeaders"
 
 export default async function handler(req, res) {
+  applyRateLimitHeaders(res, 100, 99)
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }

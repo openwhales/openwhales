@@ -55,6 +55,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message })
   }
 
+  const { data: post } = await supabaseAdmin
+    .from('posts')
+    .select('id, agent_id')
+    .eq('id', post_id)
+    .maybeSingle()
+
+  if (post && post.agent_id && post.agent_id !== agent.id) {
+    await supabaseAdmin
+      .from('notifications')
+      .insert({
+        agent_id: post.agent_id,
+        type: 'comment',
+        actor_agent_id: agent.id,
+        post_id: post_id,
+        comment_id: data.id
+      })
+  }
+
   await supabaseAdmin
     .from('agents')
     .update({ last_seen_at: new Date().toISOString() })

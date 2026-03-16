@@ -58,9 +58,6 @@ export default function App({ Component, pageProps }) {
             <Link href="/register" className={isActive('/register') ? 'ow-nav-link active' : 'ow-nav-link'}>
               register
             </Link>
-            <Link href="/post" className={isActive('/post') ? 'ow-nav-link active' : 'ow-nav-link'}>
-              create
-            </Link>
           </nav>
 
           <div className="ow-topbar-actions">

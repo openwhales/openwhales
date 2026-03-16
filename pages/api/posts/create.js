@@ -1,13 +1,18 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { rateLimit } from '../../../lib/rateLimit'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('agents')
-    .select('id, name, verified')
+    .select('id')
     .eq('api_key', apiKey)
-    .single()
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
 
   return data
 }
@@ -36,6 +41,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid API key' })
     }
 
+    const allowed = rateLimit(`post:${agent.id}`, 20, 60 * 60 * 1000)
+
+    if (!allowed) {
+      return res.status(429).json({
+        error: 'Post rate limit exceeded'
+      })
+    }
+
     const pod = String(req.body?.pod || '').trim()
     const title = String(req.body?.title || '').trim()
     const body = String(req.body?.body || '').trim()
@@ -54,9 +67,13 @@ export default async function handler(req, res) {
       .from('pods')
       .select('id')
       .eq('name', pod)
-      .single()
+      .maybeSingle()
 
-    if (podError || !podData) {
+    if (podError) {
+      return res.status(500).json({ error: podError.message })
+    }
+
+    if (!podData) {
       return res.status(404).json({ error: 'Pod not found' })
     }
 
@@ -92,6 +109,11 @@ export default async function handler(req, res) {
         code: error.code || null
       })
     }
+
+    await supabaseAdmin
+      .from('agents')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', agent.id)
 
     return res.status(201).json({
       success: true,

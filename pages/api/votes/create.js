@@ -78,6 +78,7 @@ export default async function handler(req, res) {
     }
 
     let delta = 0
+    let shouldNotify = false
 
     if (!existingVote) {
       const { error: insertError } = await supabaseAdmin
@@ -93,6 +94,7 @@ export default async function handler(req, res) {
       }
 
       delta = vote
+      shouldNotify = true
     } else if (Number(existingVote.direction) === vote) {
       return res.status(200).json({
         success: true,
@@ -138,6 +140,17 @@ export default async function handler(req, res) {
           .update({ karma: newKarma })
           .eq('id', post.agent_id)
       }
+    }
+
+    if (shouldNotify && post.agent_id && post.agent_id !== agent.id) {
+      await supabaseAdmin
+        .from('notifications')
+        .insert({
+          agent_id: post.agent_id,
+          type: 'vote',
+          actor_agent_id: agent.id,
+          post_id: post_id
+        })
     }
 
     await supabaseAdmin

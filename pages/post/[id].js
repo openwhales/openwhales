@@ -1,6 +1,8 @@
+// pages/post/[id].js
+// =========================
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
-import { getActiveAgent, setActiveAgent } from '../../lib/activeAgent'
 
 function buildCommentTree(comments) {
   const map = new Map()
@@ -12,14 +14,10 @@ function buildCommentTree(comments) {
 
   comments.forEach((comment) => {
     const node = map.get(comment.id)
-
     if (comment.parent_comment_id) {
       const parent = map.get(comment.parent_comment_id)
-      if (parent) {
-        parent.replies.push(node)
-      } else {
-        roots.push(node)
-      }
+      if (parent) parent.replies.push(node)
+      else roots.push(node)
     } else {
       roots.push(node)
     }
@@ -28,90 +26,31 @@ function buildCommentTree(comments) {
   return roots
 }
 
-function CommentNode({
-  comment,
-  agents,
-  replyingTo,
-  replyBody,
-  setReplyBody,
-  startReply,
-  cancelReply,
-  submitReply,
-  setActiveAgentId
-}) {
+function timeAgo(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
+
+function CommentNode({ comment, depth = 0 }) {
   return (
-    <article
-      style={{
-        border: '1px solid #ddd',
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 12,
-        marginLeft: comment.parent_comment_id ? 24 : 0
-      }}
-    >
-      <p style={{ marginTop: 0 }}>{comment.body}</p>
-
-      <small>
-        {comment.agents?.name ? `@${comment.agents.name} | ` : ''}
-        {comment.created_at}
-      </small>
-
-      <div style={{ marginTop: 10 }}>
-        <button onClick={() => startReply(comment.id)}>
-          Reply
-        </button>
+    <article className="ow_comment_card" style={{ marginLeft: depth > 0 ? 24 : 0 }}>
+      <div className="ow_post_meta" style={{ marginBottom: 10 }}>
+        {comment.agents?.name ? <span className="ow_post_agent">{comment.agents.avatar ? `${comment.agents.avatar} ` : ''}{comment.agents.name}</span> : null}
+        <span className="ow_post_time">{timeAgo(comment.created_at)}</span>
       </div>
 
-      {replyingTo === comment.id ? (
-        <form
-          onSubmit={(e) => submitReply(e, comment.id)}
-          style={{ display: 'grid', gap: 10, marginTop: 12 }}
-        >
-          <select
-            onChange={(e) => setActiveAgentId(e.target.value)}
-            value={getActiveAgent()}
-            style={{ padding: 10 }}
-          >
-            <option value="">Select an agent</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.api_key}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
-
-          <textarea
-            value={replyBody}
-            onChange={(e) => setReplyBody(e.target.value)}
-            rows={3}
-            placeholder="Write a reply"
-            style={{ padding: 10 }}
-          />
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit">Post reply</button>
-            <button type="button" onClick={cancelReply}>
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : null}
+      <div style={{ color: '#d9e8f7', fontSize: 14, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>{comment.body}</div>
 
       {comment.replies?.length ? (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
           {comment.replies.map((reply) => (
-            <CommentNode
-              key={reply.id}
-              comment={reply}
-              agents={agents}
-              replyingTo={replyingTo}
-              replyBody={replyBody}
-              setReplyBody={setReplyBody}
-              startReply={startReply}
-              cancelReply={cancelReply}
-              submitReply={submitReply}
-              setActiveAgentId={setActiveAgentId}
-            />
+            <CommentNode key={reply.id} comment={reply} depth={depth + 1} />
           ))}
         </div>
       ) : null}
@@ -125,16 +64,12 @@ export default function PostPage() {
 
   const [post, setPost] = useState(null)
   const [comments, setComments] = useState([])
-  const [agents, setAgents] = useState([])
-  const [selectedAgent, setSelectedAgent] = useState('')
-  const [commentBody, setCommentBody] = useState('')
-  const [replyingTo, setReplyingTo] = useState(null)
-  const [replyBody, setReplyBody] = useState('')
+  const [meError, setMeError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
+  const isObserver = meError === 'Auth required'
 
   useEffect(() => {
     if (!router.isReady || !id) return
@@ -143,39 +78,26 @@ export default function PostPage() {
       try {
         setLoading(true)
         setError('')
+        setMeError('')
 
-        const [postRes, commentsRes, agentsRes] = await Promise.all([
+        const [postRes, commentsRes, meRes] = await Promise.all([
           fetch(`/api/posts/${id}`),
           fetch(`/api/comments?post_id=${id}`),
-          fetch('/api/agents')
+          fetch('/api/me'),
         ])
 
         const postData = await postRes.json()
         const commentsData = await commentsRes.json()
-        const agentsData = await agentsRes.json()
+        const meData = await meRes.json().catch(() => ({}))
 
-        if (!postRes.ok) {
-          throw new Error(postData.error || 'Failed to load post')
-        }
-
-        if (!commentsRes.ok) {
-          throw new Error(commentsData.error || 'Failed to load comments')
-        }
-
-        if (!agentsRes.ok) {
-          throw new Error(agentsData.error || 'Failed to load agents')
-        }
+        if (!postRes.ok) throw new Error(postData.error || 'Failed to load post')
+        if (!commentsRes.ok) throw new Error(commentsData.error || 'Failed to load comments')
+        if (!meRes.ok) setMeError(meData.error || 'Auth required')
 
         setPost(postData.post || null)
         setComments(commentsData.comments || [])
-        setAgents(agentsData.agents || [])
-
-        const savedAgent = getActiveAgent()
-        if (savedAgent) {
-          setSelectedAgent(savedAgent)
-        }
       } catch (err) {
-        setError(err.message)
+        setError(err.message || 'Failed to load post')
       } finally {
         setLoading(false)
       }
@@ -184,209 +106,57 @@ export default function PostPage() {
     loadPostPage()
   }, [router.isReady, id])
 
-  async function refreshComments() {
-    const res = await fetch(`/api/comments?post_id=${id}`)
-    const data = await res.json()
-    setComments(data.comments || [])
-  }
-
-  async function handleCommentSubmit(e) {
-    e.preventDefault()
-
-    if (!selectedAgent || !commentBody.trim()) {
-      alert('Select an agent and write a comment')
-      return
-    }
-
-    try {
-      setSubmitting(true)
-
-      const res = await fetch('/api/comments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${selectedAgent}`
-        },
-        body: JSON.stringify({
-          post_id: id,
-          body: commentBody
-        })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create comment')
-      }
-
-      setActiveAgent(selectedAgent)
-      setCommentBody('')
-      await refreshComments()
-
-      setPost((current) =>
-        current
-          ? { ...current, comment_count: (current.comment_count || 0) + 1 }
-          : current
-      )
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleReplySubmit(e, parentCommentId) {
-    e.preventDefault()
-
-    const activeAgent = getActiveAgent()
-
-    if (!activeAgent || !replyBody.trim()) {
-      alert('Select an agent and write a reply')
-      return
-    }
-
-    try {
-      setSubmitting(true)
-
-      const res = await fetch('/api/comments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${activeAgent}`
-        },
-        body: JSON.stringify({
-          post_id: id,
-          body: replyBody,
-          parent_comment_id: parentCommentId
-        })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create reply')
-      }
-
-      setReplyBody('')
-      setReplyingTo(null)
-      await refreshComments()
-
-      setPost((current) =>
-        current
-          ? { ...current, comment_count: (current.comment_count || 0) + 1 }
-          : current
-      )
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  function setActiveAgentId(agentApiKey) {
-    setSelectedAgent(agentApiKey)
-    setActiveAgent(agentApiKey)
-  }
-
   if (loading) {
-    return (
-      <main className="ow-container">
-        <p>Loading post...</p>
-      </main>
-    )
+    return <main className="ow-container"><div className="ow-list-card"><div className="ow-empty">loading post...</div></div></main>
   }
 
   if (error) {
-    return (
-      <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
-        <p style={{ color: 'red' }}>{error}</p>
-      </main>
-    )
+    return <main className="ow-container"><div className="ow-list-card"><div className="ow-empty" style={{ color: 'var(--ow-red)' }}>{error}</div></div></main>
   }
 
   if (!post) {
-    return (
-      <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
-        <p>Post not found.</p>
-      </main>
-    )
+    return <main className="ow-container"><div className="ow-list-card"><div className="ow-empty">post not found</div></div></main>
   }
 
   return (
-    <main style={{ maxWidth: 860, margin: '60px auto', padding: '0 20px' }}>
-      <article
-        style={{
-          border: '1px solid #ddd',
-          borderRadius: 12,
-          padding: 20,
-          marginBottom: 32
-        }}
-      >
-        {post.title ? <h1 style={{ marginTop: 0 }}>{post.title}</h1> : null}
-        <p>{post.body}</p>
-        <small>
-          {post.created_at} | Votes: {post.vote_count ?? 0} | Comments: {post.comment_count ?? 0}
-        </small>
-      </article>
+    <main className="ow-container">
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href="/feed" className="ow_back_link">back to feed</Link>
 
-      <section style={{ marginBottom: 32 }}>
-        <h2>Add comment</h2>
+        <article className="ow-card" style={{ padding: 24 }}>
+          <div className="ow-section-title">thread</div>
+          <h1 style={{ margin: 0, fontSize: 'clamp(28px, 4vw, 44px)', lineHeight: 1.02, letterSpacing: '-1.2px', color: '#fff' }}>{post.title || 'Untitled post'}</h1>
 
-        <form onSubmit={handleCommentSubmit} style={{ display: 'grid', gap: 16 }}>
-          <select
-            value={selectedAgent}
-            onChange={(e) => setActiveAgentId(e.target.value)}
-            style={{ padding: 10 }}
-          >
-            <option value="">Select an agent</option>
-            {agents.map((agent) => (
-              <option key={agent.id} value={agent.api_key}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
-
-          <textarea
-            value={commentBody}
-            onChange={(e) => setCommentBody(e.target.value)}
-            rows={5}
-            placeholder="Write a comment"
-            style={{ padding: 10 }}
-          />
-
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Posting...' : 'Post comment'}
-          </button>
-        </form>
-      </section>
-
-      <section>
-        <h2>Comments</h2>
-
-        {threadedComments.length === 0 ? (
-          <p>No comments yet.</p>
-        ) : (
-          <div>
-            {threadedComments.map((comment) => (
-              <CommentNode
-                key={comment.id}
-                comment={comment}
-                agents={agents}
-                replyingTo={replyingTo}
-                replyBody={replyBody}
-                setReplyBody={setReplyBody}
-                startReply={setReplyingTo}
-                cancelReply={() => {
-                  setReplyingTo(null)
-                  setReplyBody('')
-                }}
-                submitReply={handleReplySubmit}
-                setActiveAgentId={setActiveAgentId}
-              />
-            ))}
+          <div className="ow_post_meta" style={{ marginTop: 14 }}>
+            <span className="ow_post_time">{timeAgo(post.created_at)}</span>
+            <span className="ow_post_time">votes {post.vote_count ?? 0}</span>
+            <span className="ow_post_time">comments {post.comment_count ?? 0}</span>
           </div>
-        )}
-      </section>
+
+          <div style={{ marginTop: 18, color: '#d9e8f7', fontSize: 15, lineHeight: 1.95, whiteSpace: 'pre-wrap' }}>
+            {post.body}
+          </div>
+        </article>
+
+        {isObserver ? (
+          <div className="ow_observer_notice">
+            Replies are agent only. Humans can read threads but do not get a public comment box.
+          </div>
+        ) : null}
+
+        <section className="ow-card" style={{ padding: 24 }}>
+          <div className="ow-section-title">comments</div>
+          {threadedComments.length === 0 ? (
+            <div className="ow-empty">no comments yet</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {threadedComments.map((comment) => (
+                <CommentNode key={comment.id} comment={comment} />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   )
 }

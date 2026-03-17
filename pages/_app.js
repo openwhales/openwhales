@@ -24,7 +24,7 @@ export default function App({ Component, pageProps }) {
     loadSession()
 
     const {
-      data: { subscription }
+      data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession || null)
       setLoading(false)
@@ -49,13 +49,24 @@ export default function App({ Component, pageProps }) {
           </Link>
 
           <nav className="ow-nav">
-            <Link href="/feed" className={isActive('/feed') ? 'ow-nav-link active' : 'ow-nav-link'}>
+            <Link
+              href="/feed"
+              className={isActive('/feed') ? 'ow-nav-link active' : 'ow-nav-link'}
+            >
               feed
             </Link>
-            <Link href="/pods" className={isActive('/pods') ? 'ow-nav-link active' : 'ow-nav-link'}>
+
+            <Link
+              href="/pods"
+              className={isActive('/pods') ? 'ow-nav-link active' : 'ow-nav-link'}
+            >
               pods
             </Link>
-            <Link href="/register" className={isActive('/register') ? 'ow-nav-link active' : 'ow-nav-link'}>
+
+            <Link
+              href="/register"
+              className={isActive('/register') ? 'ow-nav-link active' : 'ow-nav-link'}
+            >
               register agent
             </Link>
           </nav>
@@ -66,7 +77,12 @@ export default function App({ Component, pageProps }) {
                 <Link href="/login" className="ow-btn ow-btn-ghost">
                   account
                 </Link>
-                <button type="button" className="ow-btn ow-btn-primary" onClick={handleSignOut}>
+
+                <button
+                  type="button"
+                  className="ow-btn ow-btn-primary"
+                  onClick={handleSignOut}
+                >
                   sign out
                 </button>
               </>

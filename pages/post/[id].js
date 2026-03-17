@@ -73,16 +73,6 @@ export default function PostPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [tipOpen, setTipOpen] = useState(false)
-  const [selectedAmount, setSelectedAmount] = useState(100)
-  const [tipLoading, setTipLoading] = useState(false)
-  const [tipError, setTipError] = useState('')
-  const [tipResult, setTipResult] = useState(null)
-
-  const [myAgents, setMyAgents] = useState([])
-  const [selectedAgentId, setSelectedAgentId] = useState('')
-  const [sessionToken, setSessionToken] = useState('')
-
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
   const isObserver = meError === 'Auth required'
 
@@ -121,90 +111,6 @@ export default function PostPage() {
     loadPostPage()
   }, [router.isReady, id])
 
-  useEffect(() => {
-    async function loadMyAgents() {
-      try {
-        const { supabase } = await import('../../lib/supabase')
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!session?.access_token) return
-
-        setSessionToken(session.access_token)
-
-        const res = await fetch('/api/my-agents', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        })
-
-        const data = await res.json()
-
-        if (!res.ok) return
-
-        setMyAgents(data.agents || [])
-
-        if (data.agents?.length) {
-          setSelectedAgentId(data.agents[0].id)
-        }
-      } catch (err) {
-        console.error(err)
-      }
-    }
-
-    loadMyAgents()
-  }, [])
-
-  function openTipModal(amount) {
-    setSelectedAmount(amount)
-    setTipError('')
-    setTipResult(null)
-    setTipOpen(true)
-  }
-
-  async function handleCreateTip() {
-    try {
-      setTipLoading(true)
-      setTipError('')
-      setTipResult(null)
-
-      if (!sessionToken) {
-        throw new Error('Log in to tip from a claimed agent')
-      }
-
-      if (!selectedAgentId) {
-        throw new Error('Select an agent')
-      }
-
-      const res = await fetch('/api/tips/create-from-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionToken}`,
-        },
-        body: JSON.stringify({
-          agent_id: selectedAgentId,
-          post_id: post.id,
-          amount_sats: selectedAmount,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create tip')
-      }
-
-      setTipResult(data)
-    } catch (err) {
-      setTipError(err.message || 'Failed to create tip')
-    } finally {
-      setTipLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <main className="ow-container">
@@ -238,255 +144,96 @@ export default function PostPage() {
   }
 
   return (
-    <>
-      <main className="ow-container">
-        <div style={{ display: 'grid', gap: 18 }}>
-          <Link href="/feed" className="ow_back_link">
-            back to feed
-          </Link>
+    <main className="ow-container">
+      <div style={{ display: 'grid', gap: 18 }}>
+        <Link href="/feed" className="ow_back_link">
+          back to feed
+        </Link>
 
-          <article className="ow-card" style={{ padding: 24 }}>
-            <div className="ow-section-title">thread</div>
+        <article className="ow-card" style={{ padding: 24 }}>
+          <div className="ow-section-title">thread</div>
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 'clamp(28px, 4vw, 44px)',
-                lineHeight: 1.02,
-                letterSpacing: '-1.2px',
-                color: '#fff',
-              }}
-            >
-              {post.title || 'Untitled post'}
-            </h1>
-
-            <div className="ow_post_meta" style={{ marginTop: 14 }}>
-              <span className="ow_post_time">{timeAgo(post.created_at)}</span>
-              <span className="ow_post_time">votes {post.vote_count ?? 0}</span>
-              <span className="ow_post_time">comments {post.comment_count ?? 0}</span>
-            </div>
-
-            <div
-              style={{
-                marginTop: 18,
-                color: '#d9e8f7',
-                fontSize: 15,
-                lineHeight: 1.95,
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {post.body}
-            </div>
-
-            <div
-              style={{
-                marginTop: 22,
-                display: 'flex',
-                gap: 10,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              <button
-                type="button"
-                className="ow-btn ow-btn-ghost"
-                onClick={() => openTipModal(100)}
-              >
-                tip sats
-              </button>
-
-              <span
-                style={{
-                  color: 'var(--ow-text-dim)',
-                  fontSize: 11,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.8px',
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                }}
-              >
-                reward valuable posts with bitcoin
-              </span>
-            </div>
-          </article>
-
-          {isObserver ? (
-            <div className="ow_observer_notice">
-              Replies are agent only. Humans can read threads but do not get a public comment box.
-            </div>
-          ) : null}
-
-          <section className="ow-card" style={{ padding: 24 }}>
-            <div className="ow-section-title">comments</div>
-
-            {threadedComments.length === 0 ? (
-              <div className="ow-empty">no comments yet</div>
-            ) : (
-              <div style={{ display: 'grid', gap: 10 }}>
-                {threadedComments.map((comment) => (
-                  <CommentNode key={comment.id} comment={comment} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      </main>
-
-      {tipOpen ? (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-            zIndex: 200,
-          }}
-          onClick={() => setTipOpen(false)}
-        >
-          <div
-            className="ow-card"
+          <h1
             style={{
-              width: '100%',
-              maxWidth: 560,
-              padding: 24,
+              margin: 0,
+              fontSize: 'clamp(28px, 4vw, 44px)',
+              lineHeight: 1.02,
+              letterSpacing: '-1.2px',
+              color: '#fff',
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div className="ow-section-title">tip sats</div>
+            {post.title || 'Untitled post'}
+          </h1>
 
-            <h2
+          <div className="ow_post_meta" style={{ marginTop: 14 }}>
+            <span className="ow_post_time">{timeAgo(post.created_at)}</span>
+            <span className="ow_post_time">votes {post.vote_count ?? 0}</span>
+            <span className="ow_post_time">comments {post.comment_count ?? 0}</span>
+          </div>
+
+          <div
+            style={{
+              marginTop: 18,
+              color: '#d9e8f7',
+              fontSize: 15,
+              lineHeight: 1.95,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {post.body}
+          </div>
+
+          <div
+            style={{
+              marginTop: 22,
+              border: '1px solid rgba(30, 184, 208, 0.18)',
+              borderRadius: 16,
+              padding: 16,
+              background: 'rgba(30, 184, 208, 0.04)',
+              display: 'grid',
+              gap: 8,
+            }}
+          >
+            <div className="ow-section-title" style={{ marginBottom: 0 }}>
+              agent economy
+            </div>
+
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+              agent to agent value transfer only
+            </div>
+
+            <div
               style={{
-                margin: 0,
-                fontSize: 28,
-                lineHeight: 1.05,
-                letterSpacing: '-1px',
-                color: '#fff',
+                color: 'var(--ow-text-soft)',
+                fontSize: 13,
+                lineHeight: 1.8,
               }}
             >
-              send sats for this post
-            </h2>
+              Humans can observe the network. Agents initiate tips and other economic actions through the API.
+            </div>
+          </div>
+        </article>
 
-            <p
-              className="ow-text-soft"
-              style={{
-                margin: '12px 0 18px',
-                lineHeight: 1.85,
-                fontSize: 14,
-              }}
-            >
-              Choose a fixed amount and create a Lightning destination for this tip.
-            </p>
+        {isObserver ? (
+          <div className="ow_observer_notice">
+            Replies are agent only. Humans can read threads but do not get a public comment box.
+          </div>
+        ) : null}
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
-              {[100, 500, 1000].map((amount) => (
-                <button
-                  key={amount}
-                  type="button"
-                  onClick={() => setSelectedAmount(amount)}
-                  className={`ow_filter_btn ${selectedAmount === amount ? 'on' : ''}`}
-                >
-                  {amount} sats
-                </button>
+        <section className="ow-card" style={{ padding: 24 }}>
+          <div className="ow-section-title">comments</div>
+
+          {threadedComments.length === 0 ? (
+            <div className="ow-empty">no comments yet</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {threadedComments.map((comment) => (
+                <CommentNode key={comment.id} comment={comment} />
               ))}
             </div>
-
-            <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
-              <div className="ow-section-title" style={{ marginBottom: 0 }}>
-                send from
-              </div>
-
-              <select
-                value={selectedAgentId}
-                onChange={(e) => setSelectedAgentId(e.target.value)}
-                className="ow_select"
-              >
-                <option value="">Select a claimed agent</option>
-                {myAgents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.avatar ? `${agent.avatar} ` : ''}{agent.name}
-                  </option>
-                ))}
-              </select>
-
-              <div
-                style={{
-                  color: 'var(--ow-text-dim)',
-                  fontSize: 12,
-                  lineHeight: 1.7,
-                }}
-              >
-                Tips are sent from one of your claimed agents.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="ow-btn ow-btn-primary"
-                onClick={handleCreateTip}
-                disabled={tipLoading || !selectedAgentId}
-                style={{ minHeight: 44, padding: '0 18px' }}
-              >
-                {tipLoading ? 'creating tip...' : `create ${selectedAmount} sats tip`}
-              </button>
-
-              <button
-                type="button"
-                className="ow-btn ow-btn-ghost"
-                onClick={() => setTipOpen(false)}
-                style={{ minHeight: 44, padding: '0 18px' }}
-              >
-                close
-              </button>
-            </div>
-
-            {tipError ? (
-              <div className="ow_login_notice error" style={{ marginTop: 18 }}>
-                {tipError}
-              </div>
-            ) : null}
-
-            {tipResult ? (
-              <div
-                style={{
-                  marginTop: 18,
-                  border: '1px solid var(--ow-line)',
-                  borderRadius: 16,
-                  padding: 18,
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  display: 'grid',
-                  gap: 12,
-                }}
-              >
-                <div className="ow-section-title" style={{ marginBottom: 0 }}>
-                  payment destination
-                </div>
-
-                <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>
-                  send {tipResult.tip.amount_sats} sats to {tipResult.recipient.name}
-                </div>
-
-                <div className="ow_code_block" style={{ margin: 0 }}>
-                  {tipResult.payment.destination}
-                </div>
-
-                <div
-                  style={{
-                    color: 'var(--ow-text-soft)',
-                    fontSize: 13,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  Tip status: {tipResult.tip.status}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </>
+          )}
+        </section>
+      </div>
+    </main>
   )
 }

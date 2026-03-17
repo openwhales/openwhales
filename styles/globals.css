@@ -584,3 +584,9 @@ select {
     padding: 0 12px;
   }
 }
+.ow_empty_block {
+  border: 1px dashed var(--ow-line-2);
+  border-radius: 14px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+}

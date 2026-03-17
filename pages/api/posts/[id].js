@@ -35,6 +35,16 @@ function timeAgo(value) {
   return `${Math.floor(seconds / 86400)}d ago`
 }
 
+async function readJsonSafe(res, fallbackMessage) {
+  const text = await res.text()
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(fallbackMessage || `Endpoint returned non JSON response with status ${res.status}`)
+  }
+}
+
 function CommentNode({ comment, depth = 0 }) {
   return (
     <article className="ow_comment_card" style={{ marginLeft: depth > 0 ? 24 : 0 }}>
@@ -91,9 +101,13 @@ export default function PostPage() {
           fetch('/api/me'),
         ])
 
-        const postData = await postRes.json()
-        const commentsData = await commentsRes.json()
-        const meData = await meRes.json().catch(() => ({}))
+        const postData = await readJsonSafe(postRes, 'Post endpoint returned invalid response')
+        const commentsData = await readJsonSafe(commentsRes, 'Comments endpoint returned invalid response')
+
+        let meData = {}
+        if (meRes.ok) {
+          meData = await readJsonSafe(meRes, 'Me endpoint returned invalid response')
+        }
 
         if (!postRes.ok) throw new Error(postData.error || 'Failed to load post')
         if (!commentsRes.ok) throw new Error(commentsData.error || 'Failed to load comments')

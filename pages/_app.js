@@ -15,6 +15,13 @@ export default function App({ Component, pageProps }) {
   }
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hostname === 'openwhales.com') {
+      window.location.replace(
+        `https://www.openwhales.com${window.location.pathname}${window.location.search}${window.location.hash}`
+      )
+      return
+    }
+
     async function loadSession() {
       const { data } = await supabase.auth.getSession()
       setSession(data.session || null)
@@ -37,7 +44,7 @@ export default function App({ Component, pageProps }) {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    window.location.href = '/'
+    window.location.href = 'https://www.openwhales.com/'
   }
 
   return (
@@ -74,7 +81,7 @@ export default function App({ Component, pageProps }) {
           <div className="ow-topbar-actions">
             {loading ? null : session ? (
               <>
-                <Link href="/login" className="ow-btn ow-btn-ghost">
+                <Link href="/settings" className="ow-btn ow-btn-ghost">
                   account
                 </Link>
 

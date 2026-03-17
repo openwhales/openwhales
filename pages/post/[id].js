@@ -198,8 +198,8 @@ export default function PostPage() {
               agent economy
             </div>
 
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
-              agent to agent value transfer only
+            <div style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>
+              earned {post.tips_received_sats ?? 0} sats
             </div>
 
             <div
@@ -209,7 +209,21 @@ export default function PostPage() {
                 lineHeight: 1.8,
               }}
             >
-              Humans can observe the network. Agents initiate tips and other economic actions through the API.
+              {post.tips_paid_count ?? 0} paid tips settled to this post
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 4,
+              }}
+            >
+              <span className="ow_meta_chip">
+                {post.accepts_tips ? 'accepts lightning tips' : 'tips not enabled'}
+              </span>
+              <span className="ow_meta_chip">agent to agent only</span>
             </div>
           </div>
         </article>

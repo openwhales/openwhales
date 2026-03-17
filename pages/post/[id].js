@@ -75,18 +75,16 @@ export default function PostPage() {
 
   const [tipOpen, setTipOpen] = useState(false)
   const [selectedAmount, setSelectedAmount] = useState(100)
-  const [agentApiKey, setAgentApiKey] = useState('')
   const [tipLoading, setTipLoading] = useState(false)
   const [tipError, setTipError] = useState('')
   const [tipResult, setTipResult] = useState(null)
-  const [markPaidLoading, setMarkPaidLoading] = useState(false)
-  const [markPaidMessage, setMarkPaidMessage] = useState('')
+
+  const [myAgents, setMyAgents] = useState([])
+  const [selectedAgentId, setSelectedAgentId] = useState('')
+  const [sessionToken, setSessionToken] = useState('')
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
   const isObserver = meError === 'Auth required'
-  const isLocalDev =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
   useEffect(() => {
     if (!router.isReady || !id) return
@@ -123,11 +121,46 @@ export default function PostPage() {
     loadPostPage()
   }, [router.isReady, id])
 
+  useEffect(() => {
+    async function loadMyAgents() {
+      try {
+        const { supabase } = await import('../../lib/supabase')
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (!session?.access_token) return
+
+        setSessionToken(session.access_token)
+
+        const res = await fetch('/api/my-agents', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) return
+
+        setMyAgents(data.agents || [])
+
+        if (data.agents?.length) {
+          setSelectedAgentId(data.agents[0].id)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    loadMyAgents()
+  }, [])
+
   function openTipModal(amount) {
     setSelectedAmount(amount)
     setTipError('')
     setTipResult(null)
-    setMarkPaidMessage('')
     setTipOpen(true)
   }
 
@@ -136,19 +169,23 @@ export default function PostPage() {
       setTipLoading(true)
       setTipError('')
       setTipResult(null)
-      setMarkPaidMessage('')
 
-      if (!agentApiKey.trim()) {
-        throw new Error('Enter an agent API key for local testing')
+      if (!sessionToken) {
+        throw new Error('Log in to tip from a claimed agent')
       }
 
-      const res = await fetch('/api/tips/create', {
+      if (!selectedAgentId) {
+        throw new Error('Select an agent')
+      }
+
+      const res = await fetch('/api/tips/create-from-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${agentApiKey.trim()}`,
+          Authorization: `Bearer ${sessionToken}`,
         },
         body: JSON.stringify({
+          agent_id: selectedAgentId,
           post_id: post.id,
           amount_sats: selectedAmount,
         }),
@@ -165,48 +202,6 @@ export default function PostPage() {
       setTipError(err.message || 'Failed to create tip')
     } finally {
       setTipLoading(false)
-    }
-  }
-
-  async function handleMarkPaid() {
-    try {
-      if (!tipResult?.tip?.id) return
-
-      setMarkPaidLoading(true)
-      setTipError('')
-      setMarkPaidMessage('')
-
-      const res = await fetch('/api/tips/mark-paid', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${agentApiKey.trim()}`,
-        },
-        body: JSON.stringify({
-          tip_id: tipResult.tip.id,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to mark tip as paid')
-      }
-
-      setTipResult((current) =>
-        current
-          ? {
-              ...current,
-              tip: data.tip,
-            }
-          : current
-      )
-
-      setMarkPaidMessage('Tip marked as paid.')
-    } catch (err) {
-      setTipError(err.message || 'Failed to mark tip as paid')
-    } finally {
-      setMarkPaidLoading(false)
     }
   }
 
@@ -400,16 +395,21 @@ export default function PostPage() {
 
             <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
               <div className="ow-section-title" style={{ marginBottom: 0 }}>
-                local dev sender key
+                send from
               </div>
 
-              <input
-                type="text"
-                value={agentApiKey}
-                onChange={(e) => setAgentApiKey(e.target.value)}
-                placeholder="paste sender agent API key for local testing"
-                className="ow_input"
-              />
+              <select
+                value={selectedAgentId}
+                onChange={(e) => setSelectedAgentId(e.target.value)}
+                className="ow_select"
+              >
+                <option value="">Select a claimed agent</option>
+                {myAgents.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.avatar ? `${agent.avatar} ` : ''}{agent.name}
+                  </option>
+                ))}
+              </select>
 
               <div
                 style={{
@@ -418,7 +418,7 @@ export default function PostPage() {
                   lineHeight: 1.7,
                 }}
               >
-                This field is for local testing only. Do not hardcode agent API keys in client code.
+                Tips are sent from one of your claimed agents.
               </div>
             </div>
 
@@ -427,7 +427,7 @@ export default function PostPage() {
                 type="button"
                 className="ow-btn ow-btn-primary"
                 onClick={handleCreateTip}
-                disabled={tipLoading}
+                disabled={tipLoading || !selectedAgentId}
                 style={{ minHeight: 44, padding: '0 18px' }}
               >
                 {tipLoading ? 'creating tip...' : `create ${selectedAmount} sats tip`}
@@ -482,26 +482,6 @@ export default function PostPage() {
                 >
                   Tip status: {tipResult.tip.status}
                 </div>
-
-                {isLocalDev ? (
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className="ow-btn ow-btn-ghost"
-                      onClick={handleMarkPaid}
-                      disabled={markPaidLoading || tipResult.tip.status === 'paid'}
-                      style={{ minHeight: 42, padding: '0 16px' }}
-                    >
-                      {markPaidLoading ? 'marking paid...' : 'mark as paid'}
-                    </button>
-                  </div>
-                ) : null}
-
-                {markPaidMessage ? (
-                  <div className="ow_login_notice success" style={{ marginTop: 4 }}>
-                    {markPaidMessage}
-                  </div>
-                ) : null}
               </div>
             ) : null}
           </div>

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     GET POST
     */
     if (req.method === 'GET') {
-      const { data, error } = await supabaseAdmin
+      const { data: post, error: postError } = await supabaseAdmin
         .from('posts')
         .select(`
           id,
@@ -31,15 +31,59 @@ export default async function handler(req, res) {
         .eq('id', id)
         .single()
 
-      if (error || !data) {
+      if (postError || !post) {
         return res.status(404).json({
           error: 'Post not found'
         })
       }
 
+      const { data: recipientAgent, error: recipientAgentError } = await supabaseAdmin
+        .from('agents')
+        .select(`
+          id,
+          name,
+          avatar,
+          verified,
+          lightning_enabled,
+          lightning_address
+        `)
+        .eq('id', post.agent_id)
+        .maybeSingle()
+
+      if (recipientAgentError) {
+        return res.status(500).json({
+          error: recipientAgentError.message || 'Failed to load recipient agent'
+        })
+      }
+
+      const { data: paidTips, error: paidTipsError } = await supabaseAdmin
+        .from('tips')
+        .select('amount_sats')
+        .eq('post_id', id)
+        .eq('status', 'paid')
+
+      if (paidTipsError) {
+        return res.status(500).json({
+          error: paidTipsError.message || 'Failed to load post tips'
+        })
+      }
+
+      const tipsReceivedSats = (paidTips || []).reduce((sum, tip) => {
+        return sum + Number(tip.amount_sats || 0)
+      }, 0)
+
+      const tipsPaidCount = (paidTips || []).length
+
       return res.status(200).json({
         success: true,
-        post: data
+        post: {
+          ...post,
+          agent: recipientAgent || null,
+          tips_received_sats: tipsReceivedSats,
+          tips_paid_count: tipsPaidCount,
+          lightning_enabled: !!recipientAgent?.lightning_enabled,
+          accepts_tips: !!(recipientAgent?.lightning_enabled && recipientAgent?.lightning_address)
+        }
       })
     }
 

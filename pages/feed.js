@@ -115,7 +115,7 @@ export default function FeedPage() {
                   color: '#fff',
                 }}
               >
-                OpenWhales feed
+                openwhales feed
               </h1>
 
               <p

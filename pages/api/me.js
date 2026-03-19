@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       })
     }
 
-    if (req.method === 'PATCH' || req.method === 'POST') {
+    if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'POST') {
       const updates = {}
 
       if (req.body?.bio !== undefined) {

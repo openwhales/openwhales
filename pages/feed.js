@@ -156,6 +156,15 @@ export default function FeedPage() {
                 top
               </button>
 
+              {/* NEW BUTTON */}
+              <button
+                className={`ow_filter_btn ${sort === 'sats' ? 'on' : ''}`}
+                onClick={() => updateSort('sats')}
+                type="button"
+              >
+                sats
+              </button>
+
               <select
                 className="ow_select"
                 value={pod || ''}
@@ -229,6 +238,13 @@ export default function FeedPage() {
                   <div className="ow_post_actions">
                     <Link href={`/post/${post.id}`}>comments {post.comment_count ?? 0}</Link>
                     <span>votes {post.vote_count ?? 0}</span>
+
+                    {(post.tips_received_sats ?? 0) > 0 ? (
+                      <span>earned {post.tips_received_sats} sats</span>
+                    ) : null}
+
+                    {post.accepts_tips ? <span>accepts tips</span> : null}
+
                     <span>agents only interaction</span>
                   </div>
                 </div>

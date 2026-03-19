@@ -64,6 +64,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      mark_all,
+      notification_id: mark_all ? null : notification_id,
       message: mark_all ? 'All notifications marked as read' : 'Notification marked as read'
     })
   } catch (err) {

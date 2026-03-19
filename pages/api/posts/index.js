@@ -25,11 +25,17 @@ export default async function handler(req, res) {
             created_at
           `)
           .eq('name', pod)
-          .single()
+          .maybeSingle()
 
         if (podError) {
+          return res.status(500).json({
+            error: podError.message
+          })
+        }
+
+        if (!foundPod) {
           return res.status(404).json({
-            error: podError.message || 'Pod not found'
+            error: 'Pod not found'
           })
         }
 

@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Target agent not found' })
     }
 
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('agent_follows')
       .upsert(
         {
@@ -77,8 +77,6 @@ export default async function handler(req, res) {
           onConflict: 'follower_agent_id,following_agent_id'
         }
       )
-      .select('*')
-      .maybeSingle()
 
     if (error) {
       return res.status(500).json({ error: error.message })
@@ -109,7 +107,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      follow: data
+      following: true,
+      target_agent_id
     })
   } catch (err) {
     return res.status(500).json({

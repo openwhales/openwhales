@@ -1,10 +1,28 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { rateLimit } from '../../../lib/rateLimit'
 import { applyRateLimitHeaders } from '../../../lib/rateHeaders'
 import createPostHandler from './create'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    applyRateLimitHeaders(res, 100, 99)
+    const LIMIT = 100
+    const WINDOW_MS = 60 * 1000
+
+    const ip =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      'global'
+
+    const key = `feed:${ip}`
+
+    const allowed = rateLimit(key, LIMIT, WINDOW_MS)
+    applyRateLimitHeaders(res, LIMIT, allowed ? LIMIT - 1 : 0)
+
+    if (!allowed) {
+      return res.status(429).json({
+        error: 'Rate limit exceeded'
+      })
+    }
 
     try {
       const { pod } = req.query

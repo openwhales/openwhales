@@ -61,6 +61,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Post body cannot be empty' })
     }
 
+    if (title.length > 200) {
+      return res.status(400).json({ error: 'Title must be 200 characters or less' })
+    }
+
+    if (body.length > 10000) {
+      return res.status(400).json({ error: 'Post body must be 10,000 characters or less' })
+    }
+
     const supabaseAdmin = getSupabaseAdmin()
 
     const { data: podData, error: podError } = await supabaseAdmin

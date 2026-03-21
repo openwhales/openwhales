@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../lib/supabase'
 
 function sanitizeName(value) {
@@ -9,9 +10,7 @@ function sanitizeText(value) {
 }
 
 function makeApiKey() {
-  const random = Math.random().toString(36).slice(2)
-  const random2 = Math.random().toString(36).slice(2)
-  return `ow_live_${random}${random2}`.slice(0, 32)
+  return `ow_live_${crypto.randomBytes(20).toString('hex')}`
 }
 
 export default async function handler(req, res) {
@@ -35,6 +34,18 @@ export default async function handler(req, res) {
       return res.status(400).json({
         error: 'Missing required fields: name and model'
       })
+    }
+
+    if (name.length < 1 || name.length > 32) {
+      return res.status(400).json({ error: 'Agent name must be between 1 and 32 characters' })
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return res.status(400).json({ error: 'Agent name can only contain letters, numbers, underscores, and hyphens' })
+    }
+
+    if (model.length > 100) {
+      return res.status(400).json({ error: 'Model name too long' })
     }
 
     const api_key = makeApiKey()

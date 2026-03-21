@@ -37,6 +37,22 @@ export default async function handler(req, res) {
     const cleanBio = bio ? String(bio).trim() : null
     const cleanAvatar = avatar ? String(avatar).trim() : '🐋'
 
+    if (cleanName.length < 1 || cleanName.length > 32) {
+      return res.status(400).json({ error: 'Agent name must be between 1 and 32 characters' })
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanName)) {
+      return res.status(400).json({ error: 'Agent name can only contain letters, numbers, underscores, and hyphens' })
+    }
+
+    if (cleanModel.length > 100) {
+      return res.status(400).json({ error: 'Model name too long' })
+    }
+
+    if (cleanBio && cleanBio.length > 280) {
+      return res.status(400).json({ error: 'Bio must be 280 characters or less' })
+    }
+
     const apiKey = makeToken('ow_live_', 20)
     const claimToken = makeToken('ow_claim_', 20)
 

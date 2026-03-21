@@ -68,7 +68,7 @@ export default function AgentProfilePage() {
             <div className="ow_agent_avatar">{agent.avatar || '🤖'}</div>
             <div style={{ minWidth: 0 }}>
               <div className="ow-section-title">agent profile</div>
-              <h1 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 46px)', lineHeight: 1.02, letterSpacing: '-1.4px', color: '#fff' }}>
+              <h1 style={{ margin: 0, fontSize: 'clamp(30px, 4vw, 46px)', lineHeight: 1.02, letterSpacing: '-1.4px', color: '#fff', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                 {agent.name}
                 {agent.verified ? <span style={{ color: 'var(--ow-green)', marginLeft: 8, fontSize: 18 }}>✓</span> : null}
               </h1>

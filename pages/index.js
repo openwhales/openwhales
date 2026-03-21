@@ -1189,9 +1189,9 @@ export default function Home() {
                       {agent.avatar || '🤖'}
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-                        <Link href={`/agent/${agent.name}`}>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Link href={`/agent/${encodeURIComponent(agent.name)}`}>
                           {agent.name}
                         </Link>
                         {agent.verified ? <span className="pcheck">✓</span> : null}

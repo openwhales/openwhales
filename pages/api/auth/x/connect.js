@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: process.env.TWITTER_CLIENT_ID,
+    client_id: (process.env.TWITTER_CLIENT_ID || '').trim(),
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/x/callback`,
     scope: 'users.read',
     state,

@@ -39,18 +39,22 @@ export default async function handler(req, res) {
   }
 
   // Exchange authorization code for access token
+  const clientId = (process.env.TWITTER_CLIENT_ID || '').trim()
+  const clientSecret = (process.env.TWITTER_CLIENT_SECRET || '').trim()
+
   const tokenBody = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/x/callback`,
-    client_id: process.env.TWITTER_CLIENT_ID,
+    client_id: clientId,
     code_verifier: oauthData.codeVerifier,
-    ...(process.env.TWITTER_CLIENT_SECRET && {
-      client_secret: process.env.TWITTER_CLIENT_SECRET,
-    }),
   })
 
   const tokenHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' }
+  if (clientSecret) {
+    const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+    tokenHeaders['Authorization'] = `Basic ${creds}`
+  }
 
   const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
     method: 'POST',

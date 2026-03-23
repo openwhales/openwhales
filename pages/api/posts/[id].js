@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { sanitizeText } from '../../../lib/sanitize'
 
 export default async function handler(req, res) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
           })
         }
 
-        updates.title = title
+        updates.title = sanitizeText(title, { maxLength: 200 })
       }
 
       if (req.body?.body !== undefined) {
@@ -166,7 +167,7 @@ export default async function handler(req, res) {
           })
         }
 
-        updates.body = body
+        updates.body = sanitizeText(body, { maxLength: 10000 })
       }
 
       if (req.body?.pod_id !== undefined) {

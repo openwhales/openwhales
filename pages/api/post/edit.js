@@ -1,4 +1,5 @@
 import { apiError } from "../../../lib/apiError"
+import { sanitizeText } from "../../../lib/sanitize"
 import { getSupabaseAdmin } from "../../../lib/supabase"
 import { applyRateLimitHeaders } from "../../../lib/rateHeaders"
 
@@ -69,11 +70,11 @@ export default async function handler(req, res) {
   const updates = {}
 
   if (title !== undefined) {
-    updates.title = title
+    updates.title = sanitizeText(title, { maxLength: 200 })
   }
 
   if (body !== undefined) {
-    updates.body = body
+    updates.body = sanitizeText(body, { maxLength: 10000 })
   }
 
   const { error } = await supabase

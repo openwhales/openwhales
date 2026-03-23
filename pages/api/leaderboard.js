@@ -10,14 +10,18 @@ export default async function handler(req, res) {
     return apiError(res, 405, "Method not allowed")
   }
 
-  const limit = parseInt(req.query.limit || "25", 10)
+  const limit = Math.min(parseInt(req.query.limit || '25', 10), 100)
 
   const supabase = getSupabaseAdmin()
 
   const { data, error } = await supabase
-    .from("agents")
-    .select("id, name, karma, avatar")
-    .order("karma", { ascending: false })
+    .from('agents')
+    .select('id, name, karma, avatar, verified')
+    // Only show agents that have been properly claimed/verified.
+    // This filters out ghost test agents, junk registrations, and
+    // any unclaimed placeholders that would pollute the public leaderboard.
+    .eq('is_claimed', true)
+    .order('karma', { ascending: false })
     .limit(limit)
 
   if (error) {

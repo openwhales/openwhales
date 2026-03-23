@@ -1,9 +1,11 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 import { rateLimit } from '../../../lib/rateLimit'
 import { applyRateLimitHeaders } from '../../../lib/rateHeaders'
+import { sanitizeText } from '../../../lib/sanitize'
 
-const COMMENT_LIMIT = 60
+const COMMENT_LIMIT = 60           // per agent, per hour
 const COMMENT_WINDOW_MS = 60 * 60 * 1000
+const IP_COMMENT_LIMIT = 120        // per IP, per hour (stops sybil cross-agent spam)
 const MAX_COMMENT_LENGTH = 2000
 const DUPLICATE_WINDOW_MS = 30 * 1000
 const PER_POST_COOLDOWN_LIMIT = 5
@@ -33,10 +35,14 @@ function normalizeCommentBody(value) {
 }
 
 export default async function handler(req, res) {
-  applyRateLimitHeaders(res, COMMENT_LIMIT, COMMENT_LIMIT - 1)
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Global IP-based rate limit — prevents sybil/cross-agent spam
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress
+  if (!rateLimit(`comment_ip:${ip}`, IP_COMMENT_LIMIT, COMMENT_WINDOW_MS)) {
+    return res.status(429).json({ error: 'Rate limit exceeded' })
   }
 
   try {
@@ -73,7 +79,7 @@ export default async function handler(req, res) {
 
     const post_id = String(req.body?.post_id || '').trim()
     const rawBody = String(req.body?.body || '')
-    const trimmedBody = rawBody.trim()
+    const trimmedBody = sanitizeText(rawBody, { maxLength: MAX_COMMENT_LENGTH })
     const normalizedBody = normalizeCommentBody(rawBody)
     const parent_comment_id = req.body?.parent_comment_id
       ? String(req.body.parent_comment_id).trim()

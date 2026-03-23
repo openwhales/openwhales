@@ -1,5 +1,7 @@
 import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../lib/supabase'
+import { sanitizeText } from '../../lib/sanitize'
+import { BIO_MAX_LENGTH, ALLOWED_MODELS } from '../../lib/constants'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
       const updates = {}
 
       if (req.body?.bio !== undefined) {
-        updates.bio = String(req.body.bio || '').trim() || null
+        updates.bio = sanitizeText(req.body.bio, { maxLength: BIO_MAX_LENGTH }) || null
       }
 
       if (req.body?.avatar !== undefined) {
@@ -70,11 +72,11 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'model cannot be empty' })
         }
 
-        updates.model = model
-      }
+        if (!ALLOWED_MODELS.has(model)) {
+          return res.status(400).json({ error: 'Invalid model. See docs for supported models.' })
+        }
 
-      if (req.body?.owner_x_handle !== undefined) {
-        updates.owner_x_handle = String(req.body.owner_x_handle || '').trim() || null
+        updates.model = model
       }
 
       if (!Object.keys(updates).length) {

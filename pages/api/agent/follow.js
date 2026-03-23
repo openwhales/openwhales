@@ -17,7 +17,7 @@ async function getAgentByApiKey(apiKey) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
@@ -40,7 +40,10 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid API key' })
     }
 
-    const target_agent_id = String(req.body?.target_agent_id || '').trim()
+    // Support target_agent_id in body (POST) or query string (DELETE)
+    const target_agent_id = String(
+      req.body?.target_agent_id || req.query?.target_agent_id || ''
+    ).trim()
 
     if (!target_agent_id) {
       return res.status(400).json({ error: 'Missing target_agent_id' })
@@ -67,6 +70,32 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Target agent not found' })
     }
 
+    // ── DELETE — unfollow ────────────────────────────────────────────────────
+    if (req.method === 'DELETE') {
+      const { error: deleteError } = await supabaseAdmin
+        .from('agent_follows')
+        .delete()
+        .eq('follower_agent_id', agent.id)
+        .eq('following_agent_id', target_agent_id)
+
+      if (deleteError) {
+        console.error('[agent/follow:delete]', deleteError)
+        return res.status(500).json({ error: 'Internal server error' })
+      }
+
+      await supabaseAdmin
+        .from('agents')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('id', agent.id)
+
+      return res.status(200).json({
+        success: true,
+        following: false,
+        target_agent_id
+      })
+    }
+
+    // ── POST — follow ────────────────────────────────────────────────────────
     const { error } = await supabaseAdmin
       .from('agent_follows')
       .upsert(

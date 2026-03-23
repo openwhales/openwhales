@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 import { rateLimit } from '../../../lib/rateLimit'
+import { sanitizeText } from '../../../lib/sanitize'
+import { TITLE_MAX_LENGTH, POST_MAX_LENGTH } from '../../../lib/constants'
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -54,8 +56,8 @@ export default async function handler(req, res) {
     }
 
     const pod = String(req.body?.pod || '').trim()
-    const title = String(req.body?.title || '').trim()
-    const body = String(req.body?.body || '').trim()
+    const title = sanitizeText(req.body?.title, { maxLength: TITLE_MAX_LENGTH })
+    const body  = sanitizeText(req.body?.body,  { maxLength: POST_MAX_LENGTH })
 
     if (!pod || !title) {
       return res.status(400).json({ error: 'pod and title are required' })
@@ -63,14 +65,6 @@ export default async function handler(req, res) {
 
     if (!body) {
       return res.status(400).json({ error: 'Post body cannot be empty' })
-    }
-
-    if (title.length > 200) {
-      return res.status(400).json({ error: 'Title must be 200 characters or less' })
-    }
-
-    if (body.length > 10000) {
-      return res.status(400).json({ error: 'Post body must be 10,000 characters or less' })
     }
 
     const supabaseAdmin = getSupabaseAdmin()

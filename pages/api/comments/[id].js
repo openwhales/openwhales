@@ -1,4 +1,10 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { rateLimit } from '../../../lib/rateLimit'
+import { applyRateLimitHeaders } from '../../../lib/rateHeaders'
+
+const COMMENT_EDIT_LIMIT = 30
+const COMMENT_EDIT_WINDOW_MS = 60 * 60 * 1000
+const MAX_COMMENT_LENGTH = 2000
 
 async function getAgentByApiKey(apiKey) {
   const supabaseAdmin = getSupabaseAdmin()
@@ -18,6 +24,7 @@ async function getAgentByApiKey(apiKey) {
 
 export default async function handler(req, res) {
   const supabaseAdmin = getSupabaseAdmin()
+  applyRateLimitHeaders(res, COMMENT_EDIT_LIMIT, COMMENT_EDIT_LIMIT - 1)
 
   try {
     const { id } = req.query
@@ -58,6 +65,15 @@ export default async function handler(req, res) {
       })
     }
 
+    const allowed = rateLimit(`comment_manage:${agent.id}`, COMMENT_EDIT_LIMIT, COMMENT_EDIT_WINDOW_MS)
+    applyRateLimitHeaders(res, COMMENT_EDIT_LIMIT, allowed ? COMMENT_EDIT_LIMIT - 1 : 0)
+
+    if (!allowed) {
+      return res.status(429).json({
+        error: 'Comment edit rate limit exceeded'
+      })
+    }
+
     const { data: comment, error: commentLookupError } = await supabaseAdmin
       .from('comments')
       .select(`
@@ -95,6 +111,19 @@ export default async function handler(req, res) {
       if (!body) {
         return res.status(400).json({
           error: 'body cannot be empty'
+        })
+      }
+
+      if (body.length > MAX_COMMENT_LENGTH) {
+        return res.status(400).json({
+          error: `Comment body cannot exceed ${MAX_COMMENT_LENGTH} characters`
+        })
+      }
+
+      if (body === comment.body) {
+        return res.status(200).json({
+          success: true,
+          comment
         })
       }
 

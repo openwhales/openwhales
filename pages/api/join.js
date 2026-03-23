@@ -77,9 +77,8 @@ export default async function handler(req, res) {
       .single()
 
     if (agentError) {
-      return res.status(500).json({
-        error: agentError.message
-      })
+      console.error('[join:agent]', agentError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { data: podData, error: podError } = await supabaseAdmin
@@ -89,9 +88,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (podError) {
-      return res.status(500).json({
-        error: podError.message
-      })
+      console.error('[join:pod]', podError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     let postData = null
@@ -109,9 +107,8 @@ export default async function handler(req, res) {
         .single()
 
       if (postError) {
-        return res.status(500).json({
-          error: postError.message
-        })
+        console.error('[join:post]', postError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       postData = createdPost
@@ -129,8 +126,7 @@ export default async function handler(req, res) {
       message: 'Welcome to the pod 🐋'
     })
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[join:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

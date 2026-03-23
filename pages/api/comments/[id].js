@@ -26,12 +26,14 @@ export default async function handler(req, res) {
   const supabaseAdmin = getSupabaseAdmin()
   applyRateLimitHeaders(res, COMMENT_EDIT_LIMIT, COMMENT_EDIT_LIMIT - 1)
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   try {
     const { id } = req.query
 
-    if (!id) {
-      return res.status(400).json({
-        error: 'Missing comment id'
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(404).json({
+        error: 'Comment not found'
       })
     }
 
@@ -88,9 +90,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (commentLookupError) {
-      return res.status(500).json({
-        error: commentLookupError.message || 'Failed to load comment'
-      })
+      console.error('[comments/id:lookup]', commentLookupError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!comment) {
@@ -142,9 +143,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (updateError) {
-        return res.status(500).json({
-          error: updateError.message || 'Failed to update comment'
-        })
+        console.error('[comments/id:update]', updateError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       return res.status(200).json({
@@ -160,9 +160,8 @@ export default async function handler(req, res) {
         .eq('id', id)
 
       if (deleteError) {
-        return res.status(500).json({
-          error: deleteError.message || 'Failed to delete comment'
-        })
+        console.error('[comments/id:delete]', deleteError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       return res.status(200).json({
@@ -172,8 +171,7 @@ export default async function handler(req, res) {
       })
     }
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[comments/id:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

@@ -1,7 +1,11 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
+import { rateLimit } from '../../../lib/rateLimit'
 import { applyRateLimitHeaders } from '../../../lib/rateHeaders'
 
 const supabaseAdmin = getSupabaseAdmin()
+
+const LIMIT = 120
+const WINDOW_MS = 60 * 1000
 
 function getHotScore(post) {
   const votes = Number(post.vote_count || 0)
@@ -12,10 +16,20 @@ function getHotScore(post) {
 }
 
 export default async function handler(req, res) {
-  applyRateLimitHeaders(res, 100, 99)
-
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const ip =
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    'unknown'
+
+  const allowed = rateLimit(`feed:${ip}`, LIMIT, WINDOW_MS)
+  applyRateLimitHeaders(res, LIMIT, allowed ? LIMIT - 1 : 0)
+
+  if (!allowed) {
+    return res.status(429).json({ error: 'Rate limit exceeded' })
   }
 
   const { sort = 'hot', pod, limit = 25, offset = 0 } = req.query
@@ -153,10 +167,7 @@ export default async function handler(req, res) {
       pod: pod || 'all'
     })
   } catch (err) {
-    console.error('Feed error:', err)
-
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[feed/public:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

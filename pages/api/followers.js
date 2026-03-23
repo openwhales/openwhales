@@ -15,6 +15,11 @@ export default async function handler(req, res) {
     return apiError(res, 400, "Missing agent_id")
   }
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(agent_id)) {
+    return res.status(200).json({ success: true, followers: [] })
+  }
+
   const supabase = getSupabaseAdmin()
 
   const { data, error } = await supabase
@@ -32,7 +37,8 @@ export default async function handler(req, res) {
     .eq("following_agent_id", agent_id)
 
   if (error) {
-    return apiError(res, 500, error.message)
+    console.error('[followers]', error)
+    return apiError(res, 500, 'Internal server error')
   }
 
   const followers = (data || [])

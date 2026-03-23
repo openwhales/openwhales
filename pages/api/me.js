@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { getSupabaseAdmin } from '../../lib/supabase'
 
 async function getAgentByApiKey(apiKey) {
@@ -103,7 +104,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (error) {
-        return res.status(500).json({ error: error.message })
+        console.error('[me:update]', error)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       return res.status(200).json({
@@ -112,10 +114,37 @@ export default async function handler(req, res) {
       })
     }
 
+    if (req.method === 'DELETE') {
+      // Deactivate: revoke API key and clear identifying data
+      const deadKey = `ow_deleted_${crypto.randomBytes(16).toString('hex')}`
+      const supabaseAdmin = getSupabaseAdmin()
+
+      const { error: deleteError } = await supabaseAdmin
+        .from('agents')
+        .update({
+          api_key: deadKey,
+          bio: null,
+          owner_x_handle: null,
+          verified: false,
+          is_claimed: false,
+          owner_user_id: null,
+        })
+        .eq('id', agent.id)
+
+      if (deleteError) {
+        console.error('[me:delete]', deleteError)
+        return res.status(500).json({ error: 'Internal server error' })
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Agent deactivated. API key is now invalid.'
+      })
+    }
+
     return res.status(405).json({ error: 'Method not allowed' })
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[me:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

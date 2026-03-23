@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       .ilike('name', `%${q}%`)
       .limit(limit)
 
-    if (agentsError) throw new Error(`agents query failed: ${agentsError.message}`)
+    if (agentsError) { console.error('[search:agents]', agentsError); throw new Error('Search failed') }
 
     const { data: pods, error: podsError } = await supabaseAdmin
       .from('pods')
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       .ilike('name', `%${q}%`)
       .limit(limit)
 
-    if (podsError) throw new Error(`pods query failed: ${podsError.message}`)
+    if (podsError) { console.error('[search:pods]', podsError); throw new Error('Search failed') }
 
     const { data: posts, error: postsError } = await supabaseAdmin
       .from('posts')
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    if (postsError) throw new Error(`posts query failed: ${postsError.message}`)
+    if (postsError) { console.error('[search:posts]', postsError); throw new Error('Search failed') }
 
     return res.status(200).json({
       query: q,
@@ -80,10 +80,7 @@ export default async function handler(req, res) {
       posts: posts || []
     })
   } catch (err) {
-    console.error('Search error full:', err)
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: err.message
-    })
+    console.error('[search:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

@@ -3,12 +3,14 @@ import { getSupabaseAdmin } from '../../../lib/supabase'
 export default async function handler(req, res) {
   const supabaseAdmin = getSupabaseAdmin()
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   try {
     const { id } = req.query
 
-    if (!id) {
-      return res.status(400).json({
-        error: 'Missing post id'
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(404).json({
+        error: 'Post not found'
       })
     }
 
@@ -33,9 +35,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (postError) {
-        return res.status(500).json({
-          error: postError.message || 'Failed to load post'
-        })
+        console.error('[posts/id:get]', postError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!post) {
@@ -58,9 +59,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (recipientAgentError) {
-        return res.status(500).json({
-          error: recipientAgentError.message || 'Failed to load recipient agent'
-        })
+        console.error('[posts/id:agent]', recipientAgentError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       const { data: paidTips, error: paidTipsError } = await supabaseAdmin
@@ -70,9 +70,8 @@ export default async function handler(req, res) {
         .eq('status', 'paid')
 
       if (paidTipsError) {
-        return res.status(500).json({
-          error: paidTipsError.message || 'Failed to load post tips'
-        })
+        console.error('[posts/id:tips]', paidTipsError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       const tipsReceivedSats = (paidTips || []).reduce((sum, tip) => {
@@ -128,9 +127,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (postLookupError) {
-        return res.status(500).json({
-          error: postLookupError.message || 'Failed to load post'
-        })
+        console.error('[posts/id:put-lookup]', postLookupError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!post) {
@@ -187,9 +185,8 @@ export default async function handler(req, res) {
           .maybeSingle()
 
         if (podError) {
-          return res.status(500).json({
-            error: podError.message || 'Failed to validate pod'
-          })
+          console.error('[posts/id:pod-validate]', podError)
+          return res.status(500).json({ error: 'Internal server error' })
         }
 
         if (!podData) {
@@ -224,9 +221,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (updateError) {
-        return res.status(500).json({
-          error: updateError.message || 'Failed to update post'
-        })
+        console.error('[posts/id:update]', updateError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       return res.status(200).json({
@@ -269,9 +265,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (postLookupError) {
-        return res.status(500).json({
-          error: postLookupError.message || 'Failed to load post'
-        })
+        console.error('[posts/id:delete-lookup]', postLookupError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!post) {
@@ -292,9 +287,8 @@ export default async function handler(req, res) {
         .eq('id', id)
 
       if (deleteError) {
-        return res.status(500).json({
-          error: deleteError.message || 'Failed to delete post'
-        })
+        console.error('[posts/id:delete]', deleteError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       return res.status(200).json({
@@ -308,8 +302,7 @@ export default async function handler(req, res) {
       error: 'Method not allowed'
     })
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[posts/id:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

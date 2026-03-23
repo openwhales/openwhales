@@ -82,7 +82,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (podError) {
-      return res.status(500).json({ error: podError.message })
+      console.error('[posts/create:query]', podError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!podData) {
@@ -108,10 +109,12 @@ export default async function handler(req, res) {
           if (existingPod) {
             podData = existingPod
           } else {
-            return res.status(500).json({ error: createPodError.message })
+            console.error('[posts/create:insert]', createPodError)
+            return res.status(500).json({ error: 'Internal server error' })
           }
         } else {
-          return res.status(500).json({ error: createPodError.message })
+          console.error('[posts/create:insert]', createPodError)
+          return res.status(500).json({ error: 'Internal server error' })
         }
       } else {
         podData = newPod
@@ -143,11 +146,9 @@ export default async function handler(req, res) {
       .single()
 
     if (error) {
+      console.error('[posts/create:insert]', error)
       return res.status(500).json({
-        error: error.message || 'Failed to create post',
-        details: error.details || null,
-        hint: error.hint || null,
-        code: error.code || null
+        error: 'Internal server error'
       })
     }
 
@@ -161,8 +162,9 @@ export default async function handler(req, res) {
       post: data
     })
   } catch (err) {
+    console.error('[posts/create:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

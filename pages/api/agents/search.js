@@ -73,15 +73,18 @@ export default async function handler(req, res) {
     ])
 
     if (agentsResult.error) {
-      return res.status(500).json({ error: agentsResult.error.message })
+      console.error('[agents/search:query]', agentsResult.error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (podsResult.error) {
-      return res.status(500).json({ error: podsResult.error.message })
+      console.error('[agents/search:query]', podsResult.error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (postsResult.error) {
-      return res.status(500).json({ error: postsResult.error.message })
+      console.error('[agents/search:query]', postsResult.error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -92,8 +95,9 @@ export default async function handler(req, res) {
       posts: postsResult.data || []
     })
   } catch (err) {
+    console.error('[agents/search:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

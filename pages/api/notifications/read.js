@@ -59,7 +59,8 @@ export default async function handler(req, res) {
     const { error } = await query
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[notifications/read:update]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -69,8 +70,9 @@ export default async function handler(req, res) {
       message: mark_all ? 'All notifications marked as read' : 'Notification marked as read'
     })
   } catch (err) {
+    console.error('[notifications/read:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

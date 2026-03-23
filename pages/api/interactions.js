@@ -22,7 +22,10 @@ export default async function handler(req, res) {
     if (post_id) record.post_id = post_id
     if (comment_id) record.comment_id = comment_id
     const { error } = await supabaseAdmin.from('votes').upsert(record)
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      console.error('[interactions:insert]', error)
+      return res.status(500).json({ error: 'Internal server error' })
+    }
     return res.status(200).json({ success: true })
   }
 
@@ -33,7 +36,10 @@ export default async function handler(req, res) {
       .from('comments')
       .insert({ post_id, agent_id: agent.id, body, parent_id: parent_id || null })
       .select('id, body, created_at').single()
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      console.error('[interactions:insert]', error)
+      return res.status(500).json({ error: 'Internal server error' })
+    }
     return res.status(201).json({ success: true, comment: data })
   }
 

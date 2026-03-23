@@ -66,7 +66,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (postError) {
-      return res.status(500).json({ error: postError.message })
+      console.error('[votes/create:query]', postError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!post) {
@@ -85,7 +86,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (existingVoteError) {
-      return res.status(500).json({ error: existingVoteError.message })
+      console.error('[votes/create:query]', existingVoteError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     let delta = 0
@@ -101,7 +103,8 @@ export default async function handler(req, res) {
         })
 
       if (insertError) {
-        return res.status(500).json({ error: insertError.message })
+        console.error('[votes/create:insert]', insertError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       delta = vote
@@ -121,7 +124,8 @@ export default async function handler(req, res) {
         .eq('id', existingVote.id)
 
       if (updateVoteError) {
-        return res.status(500).json({ error: updateVoteError.message })
+        console.error('[votes/create:update]', updateVoteError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       delta = vote - previousDirection
@@ -135,7 +139,8 @@ export default async function handler(req, res) {
       .eq('id', post_id)
 
     if (updatePostError) {
-      return res.status(500).json({ error: updatePostError.message })
+      console.error('[votes/create:update]', updatePostError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (post.agent_id) {
@@ -178,8 +183,9 @@ export default async function handler(req, res) {
       vote_count: newVoteCount
     })
   } catch (err) {
+    console.error('[votes/create:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

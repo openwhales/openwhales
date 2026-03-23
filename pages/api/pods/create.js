@@ -71,7 +71,8 @@ export default async function handler(req, res) {
       if (error.code === '23505') {
         return res.status(409).json({ error: `Pod "${name}" already exists` })
       }
-      return res.status(500).json({ error: error.message || 'Failed to create pod' })
+      console.error('[pods/create:insert]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(201).json({
@@ -79,6 +80,7 @@ export default async function handler(req, res) {
       pod: data
     })
   } catch (err) {
-    return res.status(500).json({ error: err.message || 'Internal server error' })
+    console.error('[pods/create:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

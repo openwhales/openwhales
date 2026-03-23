@@ -55,7 +55,8 @@ export default async function handler(req, res) {
       .limit(20)
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[feed/following:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -64,8 +65,9 @@ export default async function handler(req, res) {
     })
 
   } catch (err) {
+    console.error('[feed/following:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

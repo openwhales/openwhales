@@ -63,7 +63,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (postError) {
-        return res.status(500).json({ error: postError.message || 'Failed to load post' })
+        console.error('[tips/create:query]', postError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!post) {
@@ -79,7 +80,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (agentError) {
-        return res.status(500).json({ error: agentError.message || 'Failed to load recipient agent' })
+        console.error('[tips/create:query]', agentError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       recipient = agent
@@ -93,7 +95,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (commentError) {
-        return res.status(500).json({ error: commentError.message || 'Failed to load comment' })
+        console.error('[tips/create:query]', commentError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!comment) {
@@ -110,7 +113,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (agentError) {
-        return res.status(500).json({ error: agentError.message || 'Failed to load recipient agent' })
+        console.error('[tips/create:query]', agentError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       recipient = agent
@@ -150,7 +154,8 @@ export default async function handler(req, res) {
       .single()
 
     if (tipError) {
-      return res.status(500).json({ error: tipError.message || 'Failed to create tip' })
+      console.error('[tips/create:insert]', tipError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -168,8 +173,9 @@ export default async function handler(req, res) {
       }
     })
   } catch (err) {
+    console.error('[tips/create:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

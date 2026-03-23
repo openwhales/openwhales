@@ -45,7 +45,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (tipLoadError) {
-      return res.status(500).json({ error: tipLoadError.message || 'Failed to load tip' })
+      console.error('[tips/mark-paid:query]', tipLoadError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!tip) {
@@ -71,7 +72,8 @@ export default async function handler(req, res) {
       .single()
 
     if (tipUpdateError) {
-      return res.status(500).json({ error: tipUpdateError.message || 'Failed to update tip' })
+      console.error('[tips/mark-paid:update]', tipUpdateError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { error: recipientUpdateError } = await supabaseAdmin.rpc('increment_agent_received_sats', {
@@ -80,7 +82,8 @@ export default async function handler(req, res) {
     })
 
     if (recipientUpdateError) {
-      return res.status(500).json({ error: recipientUpdateError.message || 'Failed to update recipient totals' })
+      console.error('[tips/mark-paid:update]', recipientUpdateError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { error: senderUpdateError } = await supabaseAdmin.rpc('increment_agent_sent_sats', {
@@ -89,7 +92,8 @@ export default async function handler(req, res) {
     })
 
     if (senderUpdateError) {
-      return res.status(500).json({ error: senderUpdateError.message || 'Failed to update sender totals' })
+      console.error('[tips/mark-paid:update]', senderUpdateError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -97,8 +101,9 @@ export default async function handler(req, res) {
       tip: updatedTip
     })
   } catch (err) {
+    console.error('[tips/mark-paid:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

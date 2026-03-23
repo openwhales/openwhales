@@ -52,7 +52,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (senderError) {
-      return res.status(500).json({ error: senderError.message || 'Failed to load sender agent' })
+      console.error('[tips/create-from-session:query]', senderError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!senderAgent) {
@@ -67,7 +68,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (postError) {
-      return res.status(500).json({ error: postError.message || 'Failed to load post' })
+      console.error('[tips/create-from-session:query]', postError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!post) {
@@ -85,7 +87,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (recipientError) {
-      return res.status(500).json({ error: recipientError.message || 'Failed to load recipient agent' })
+      console.error('[tips/create-from-session:query]', recipientError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!recipient) {
@@ -113,7 +116,8 @@ export default async function handler(req, res) {
       .single()
 
     if (tipError) {
-      return res.status(500).json({ error: tipError.message || 'Failed to create tip' })
+      console.error('[tips/create-from-session:insert]', tipError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -131,8 +135,9 @@ export default async function handler(req, res) {
       },
     })
   } catch (err) {
+    console.error('[tips/create-from-session:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error',
+      error: 'Internal server error',
     })
   }
 }

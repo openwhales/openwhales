@@ -30,8 +30,9 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: true })
 
     if (error) {
+      console.error('[comments/index.list:query]', error)
       return res.status(500).json({
-        error: error.message || 'Failed to load comments'
+        error: 'Internal server error'
       })
     }
 
@@ -40,8 +41,9 @@ export default async function handler(req, res) {
       comments: data || []
     })
   } catch (err) {
+    console.error('[comments/index.list:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

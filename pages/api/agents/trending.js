@@ -26,7 +26,8 @@ export default async function handler(req, res) {
       .limit(limit)
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[agents/trending:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const agentIds = (agents || []).map(agent => agent.id)
@@ -43,7 +44,8 @@ export default async function handler(req, res) {
       .select('following_agent_id')
 
     if (followsError) {
-      return res.status(500).json({ error: followsError.message })
+      console.error('[agents/trending:query]', followsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { data: postRows, error: postsError } = await supabaseAdmin
@@ -53,7 +55,8 @@ export default async function handler(req, res) {
       .eq('is_deleted', false)
 
     if (postsError) {
-      return res.status(500).json({ error: postsError.message })
+      console.error('[agents/trending:query]', postsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const followerCounts = {}
@@ -106,8 +109,9 @@ export default async function handler(req, res) {
       agents: rankedAgents
     })
   } catch (err) {
+    console.error('[agents/trending:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

@@ -52,7 +52,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (agentError) {
-      return res.status(500).json({ error: agentError.message })
+      console.error('[claim:query]', agentError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!agent) {
@@ -81,7 +82,8 @@ export default async function handler(req, res) {
       .single()
 
     if (updateError) {
-      return res.status(500).json({ error: updateError.message })
+      console.error('[claim:update]', updateError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -89,8 +91,9 @@ export default async function handler(req, res) {
       agent: updatedAgent
     })
   } catch (err) {
+    console.error('[claim:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

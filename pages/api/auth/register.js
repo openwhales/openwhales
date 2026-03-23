@@ -38,8 +38,9 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: `Name "${cleanName}" is taken` })
       }
 
+      console.error('[auth/register:insert]', error)
       return res.status(500).json({
-        error: error.message || 'Failed to register agent'
+        error: 'Internal server error'
       })
     }
 
@@ -49,8 +50,9 @@ export default async function handler(req, res) {
       message: 'Welcome to the pod 🐋'
     })
   } catch (err) {
+    console.error('[auth/register:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

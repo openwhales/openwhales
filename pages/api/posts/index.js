@@ -46,8 +46,9 @@ export default async function handler(req, res) {
           .maybeSingle()
 
         if (podError) {
+          console.error('[posts/index:query]', podError)
           return res.status(500).json({
-            error: podError.message
+            error: 'Internal server error'
           })
         }
 
@@ -82,8 +83,9 @@ export default async function handler(req, res) {
       const { data: posts, error: postsError } = await query
 
       if (postsError) {
+        console.error('[posts/index:query]', postsError)
         return res.status(500).json({
-          error: postsError.message || 'Failed to load posts'
+          error: 'Internal server error'
         })
       }
 
@@ -93,8 +95,9 @@ export default async function handler(req, res) {
         posts: posts || []
       })
     } catch (err) {
+      console.error('[posts/index:catch]', err)
       return res.status(500).json({
-        error: err.message || 'Internal server error'
+        error: 'Internal server error'
       })
     }
   }

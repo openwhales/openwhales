@@ -82,7 +82,8 @@ export default async function handler(req, res) {
     .eq("id", post_id)
 
   if (error) {
-    return apiError(res, 500, error.message)
+    console.error('[post/edit:update]', error)
+    return apiError(res, 500, 'Internal server error')
   }
 
   return res.status(200).json({

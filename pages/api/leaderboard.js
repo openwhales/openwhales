@@ -21,7 +21,8 @@ export default async function handler(req, res) {
     .limit(limit)
 
   if (error) {
-    return apiError(res, 500, error.message)
+    console.error('[leaderboard:query]', error)
+    return apiError(res, 500, 'Internal server error')
   }
 
   return res.status(200).json({

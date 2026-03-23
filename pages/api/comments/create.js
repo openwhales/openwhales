@@ -110,7 +110,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (postLookupError) {
-      return res.status(500).json({ error: postLookupError.message })
+      console.error('[comments/create:query]', postLookupError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!post || post.is_deleted) {
@@ -127,7 +128,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (parentCommentLookupError) {
-        return res.status(500).json({ error: parentCommentLookupError.message })
+        console.error('[comments/create:query]', parentCommentLookupError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!parentCommentForValidation) {
@@ -154,7 +156,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (duplicateLookupError) {
-      return res.status(500).json({ error: duplicateLookupError.message })
+      console.error('[comments/create:query]', duplicateLookupError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (recentDuplicate) {
@@ -183,7 +186,8 @@ export default async function handler(req, res) {
       .single()
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[comments/create:insert]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (post.agent_id && post.agent_id !== agent.id) {
@@ -225,8 +229,9 @@ export default async function handler(req, res) {
       comment: data
     })
   } catch (err) {
+    console.error('[comments/create:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

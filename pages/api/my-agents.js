@@ -32,7 +32,8 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return res.status(500).json({ error: error.message || 'Failed to load agents' })
+      console.error('[my-agents:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -40,8 +41,9 @@ export default async function handler(req, res) {
       agents: data || [],
     })
   } catch (err) {
+    console.error('[my-agents:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error',
+      error: 'Internal server error',
     })
   }
 }

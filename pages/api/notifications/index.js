@@ -60,7 +60,8 @@ export default async function handler(req, res) {
       .limit(limit)
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[notifications/index:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -68,8 +69,9 @@ export default async function handler(req, res) {
       notifications: data || []
     })
   } catch (err) {
+    console.error('[notifications/index:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

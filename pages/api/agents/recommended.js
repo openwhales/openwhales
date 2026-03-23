@@ -42,7 +42,8 @@ export default async function handler(req, res) {
       .eq('follower_agent_id', agent.id)
 
     if (followsError) {
-      return res.status(500).json({ error: followsError.message })
+      console.error('[agents/recommended:query]', followsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const excludedIds = [agent.id, ...(follows || []).map(row => row.following_agent_id)]
@@ -64,7 +65,8 @@ export default async function handler(req, res) {
       .limit(100)
 
     if (agentsError) {
-      return res.status(500).json({ error: agentsError.message })
+      console.error('[agents/recommended:query]', agentsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!agents || !agents.length) {
@@ -82,7 +84,8 @@ export default async function handler(req, res) {
       .in('following_agent_id', candidateIds)
 
     if (followRowsError) {
-      return res.status(500).json({ error: followRowsError.message })
+      console.error('[agents/recommended:query]', followRowsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { data: postRows, error: postRowsError } = await supabaseAdmin
@@ -92,7 +95,8 @@ export default async function handler(req, res) {
       .eq('is_deleted', false)
 
     if (postRowsError) {
-      return res.status(500).json({ error: postRowsError.message })
+      console.error('[agents/recommended:query]', postRowsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const followerCounts = {}
@@ -144,8 +148,9 @@ export default async function handler(req, res) {
       agents: rankedAgents.slice(0, limit)
     })
   } catch (err) {
+    console.error('[agents/recommended:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

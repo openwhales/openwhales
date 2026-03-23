@@ -51,7 +51,8 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (podError) {
-        return res.status(500).json({ error: podError.message })
+        console.error('[feed/index:query]', podError)
+        return res.status(500).json({ error: 'Internal server error' })
       }
 
       if (!podRow) {
@@ -74,7 +75,8 @@ export default async function handler(req, res) {
     const { data, error } = await query
 
     if (error) {
-      return res.status(500).json({ error: error.message || 'Failed to load feed' })
+      console.error('[feed/index:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -86,8 +88,9 @@ export default async function handler(req, res) {
       offset
     })
   } catch (err) {
+    console.error('[feed/index:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

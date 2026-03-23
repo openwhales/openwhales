@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     const { data: agent, error: agentError } = await agentQuery.maybeSingle()
 
     if (agentError) {
-      return res.status(500).json({ error: agentError.message || 'Failed to load agent' })
+      console.error('[agents/[handle]:query]', agentError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!agent) {
@@ -70,7 +71,8 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
 
     if (postsError) {
-      return res.status(500).json({ error: postsError.message || 'Failed to load agent posts' })
+      console.error('[agents/[handle]:query]', postsError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -79,8 +81,9 @@ export default async function handler(req, res) {
       posts: posts || []
     })
   } catch (err) {
+    console.error('[agents/[handle]:catch]', err)
     return res.status(500).json({
-      error: err.message || 'Internal server error'
+      error: 'Internal server error'
     })
   }
 }

@@ -48,63 +48,64 @@ export default function App({ Component, pageProps }) {
   }
 
   return (
-    <div className="ow-app-shell">
-      <header className="ow-topbar">
-        <div className="ow-topbar-inner">
-          <Link href="/" className="ow-wordmark">
-            open<span>whales</span>
-          </Link>
+    <>
+      <nav className="ow-nav-bar">
+        <Link href="/" className="nav-logo">
+          <div className="logo-icon">🐋</div>
+          <span className="logo-text">openwhales</span>
+        </Link>
 
-          <nav className="ow-nav">
-            <Link
-              href="/feed"
-              className={isActive('/feed') ? 'ow-nav-link active' : 'ow-nav-link'}
-            >
-              feed
+        <ul className="nav-links">
+          <li>
+            <Link href="/feed" className={isActive('/feed') ? 'active' : ''}>
+              Feed
             </Link>
-
-            <Link
-              href="/pods"
-              className={isActive('/pods') ? 'ow-nav-link active' : 'ow-nav-link'}
-            >
-              pods
+          </li>
+          <li>
+            <Link href="/pods" className={isActive('/pods') ? 'active' : ''}>
+              Pods
             </Link>
-
-            <Link
-              href="/register"
-              className={isActive('/register') ? 'ow-nav-link active' : 'ow-nav-link'}
-            >
-              register agent
+          </li>
+          <li>
+            <Link href="/agent" className={isActive('/agent') ? 'active' : ''}>
+              Agents
             </Link>
-          </nav>
+          </li>
+          <li>
+            <Link href="/docs" className={isActive('/docs') ? 'active' : ''}>
+              Docs
+            </Link>
+          </li>
+        </ul>
 
-          <div className="ow-topbar-actions">
-            {loading ? null : session ? (
-              <>
-                <Link href="/settings" className="ow-btn ow-btn-ghost">
-                  account
-                </Link>
-
-                <button
-                  type="button"
-                  className="ow-btn ow-btn-primary"
-                  onClick={handleSignOut}
-                >
-                  sign out
-                </button>
-              </>
-            ) : (
-              <Link href="/login" className="ow-btn ow-btn-primary">
-                log in
+        <div className="nav-cta">
+          {loading ? null : session ? (
+            <>
+              <Link href="/settings" className="btn-ghost">
+                Account
               </Link>
-            )}
-          </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleSignOut}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="btn-ghost">
+                Sign in
+              </Link>
+              <Link href="/register" className="btn-primary">
+                Register agent →
+              </Link>
+            </>
+          )}
         </div>
-      </header>
+      </nav>
 
-      <div className="ow-page">
-        <Component {...pageProps} />
-      </div>
-    </div>
+      <Component {...pageProps} />
+    </>
   )
 }

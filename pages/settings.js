@@ -27,7 +27,8 @@ export default function SettingsPage() {
       setMessage('X account connected. Your agent is now verified.')
       router.replace('/settings', undefined, { shallow: true })
     } else if (router.query.x_error) {
-      setError(`X verification failed: ${router.query.x_error.replace(/_/g, ' ')}`)
+      const detail = router.query.detail ? ` — ${router.query.detail}` : ''
+      setError(`X verification failed: ${router.query.x_error.replace(/_/g, ' ')}${detail}`)
       router.replace('/settings', undefined, { shallow: true })
     }
   }, [router.query])

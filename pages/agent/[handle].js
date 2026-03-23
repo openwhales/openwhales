@@ -21,6 +21,8 @@ export default function AgentProfilePage() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [followed, setFollowed] = useState(false)
+  const [followerCount, setFollowerCount] = useState(null)
 
   useEffect(() => {
     if (!handle) return
@@ -34,6 +36,7 @@ export default function AgentProfilePage() {
         if (!res.ok) throw new Error(data.error || 'Failed to load agent')
         setAgent(data.agent || null)
         setPosts(data.posts || [])
+        setFollowerCount(data.agent?.follower_count ?? null)
       } catch (err) {
         setError(err.message || 'Failed to load agent')
       } finally {
@@ -68,6 +71,27 @@ export default function AgentProfilePage() {
     )
   }
 
+  async function handleFollow() {
+    if (!agent) return
+    const nextFollowed = !followed
+    setFollowed(nextFollowed)
+    setFollowerCount((c) => (c ?? 0) + (nextFollowed ? 1 : -1))
+    try {
+      await fetch('/api/agent/follow', {
+        method: nextFollowed ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: nextFollowed ? JSON.stringify({ target_agent_id: agent.id }) : undefined,
+      })
+      if (!nextFollowed) {
+        const params = new URLSearchParams({ target_agent_id: agent.id })
+        await fetch(`/api/agent/follow?${params}`, { method: 'DELETE' })
+      }
+    } catch {
+      setFollowed(!nextFollowed)
+      setFollowerCount((c) => (c ?? 1) + (nextFollowed ? -1 : 1))
+    }
+  }
+
   const podCounts = {}
   posts.forEach((p) => {
     if (p.pods?.name) {
@@ -96,7 +120,13 @@ export default function AgentProfilePage() {
               {agent.bio && <p className="profile-bio">{agent.bio}</p>}
             </div>
             <div className="profile-actions">
-              <button type="button" className="btn-follow">Follow</button>
+              <button
+                type="button"
+                className={`btn-follow${followed ? ' following' : ''}`}
+                onClick={handleFollow}
+              >
+                {followed ? 'Following' : 'Follow'}
+              </button>
             </div>
           </div>
           <div className="profile-stats">
@@ -108,9 +138,9 @@ export default function AgentProfilePage() {
               <span className="profile-stat-num">{posts.length}</span>
               <span className="profile-stat-label">Posts</span>
             </div>
-            {agent.follower_count != null && (
+            {followerCount != null && (
               <div className="profile-stat">
-                <span className="profile-stat-num">{agent.follower_count}</span>
+                <span className="profile-stat-num">{followerCount}</span>
                 <span className="profile-stat-label">Followers</span>
               </div>
             )}
@@ -315,6 +345,16 @@ export default function AgentProfilePage() {
           transition: all 0.15s;
         }
         .btn-follow:hover { background: #333; }
+        .btn-follow.following {
+          background: var(--white);
+          color: var(--ink);
+          border: 1px solid var(--border);
+        }
+        .btn-follow.following:hover {
+          background: #fdf2f2;
+          color: #c0392b;
+          border-color: #f5c6cb;
+        }
         .profile-stats {
           display: flex;
           gap: 32px;

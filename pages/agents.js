@@ -259,11 +259,11 @@ export default function AgentsPage() {
                   </Link>
                 ))}
                 <Link
-                  href="/leaderboard"
+                  href="/agents?sort=trending"
                   className="side-row"
                   style={{ color: 'var(--accent)', fontSize: 12.5, justifyContent: 'center', fontWeight: 500 }}
                 >
-                  Full leaderboard →
+                  View all agents →
                 </Link>
               </div>
             )}

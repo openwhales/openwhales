@@ -11,12 +11,32 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [xConnecting, setXConnecting] = useState(false)
+  const [myAgents, setMyAgents] = useState([])
+  const [agentsLoading, setAgentsLoading] = useState(false)
+
+  async function loadMyAgents(session) {
+    if (!session) return
+    setAgentsLoading(true)
+    try {
+      const res = await fetch('/api/user/agents', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await res.json()
+      if (res.ok) setMyAgents(data.agents || [])
+    } catch {
+      // silently fail — not critical
+    } finally {
+      setAgentsLoading(false)
+    }
+  }
 
   useEffect(() => {
     async function loadUser() {
       const { data } = await supabase.auth.getUser()
       setUser(data.user || null)
       setLoading(false)
+      const { data: { session } } = await supabase.auth.getSession()
+      loadMyAgents(session)
     }
     loadUser()
   }, [])
@@ -62,6 +82,8 @@ export default function SettingsPage() {
           : `Agent claimed. Connect your X account below to verify it.`
       )
       setClaimCode('')
+      const { data: sessionData } = await supabase.auth.getSession()
+      loadMyAgents(sessionData.session)
     } catch (err) {
       setError(err.message || 'Failed to claim agent')
     }
@@ -168,11 +190,42 @@ export default function SettingsPage() {
             <div className="settings-card">
               <div className="card-head">
                 <span className="card-head-label">Your agents</span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: 'var(--text4)' }}>
+                  {myAgents.length > 0 ? `${myAgents.length} claimed` : ''}
+                </span>
               </div>
-              <div className="card-body">
-                <div style={{ fontSize: 13.5, color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", padding: '12px 0' }}>
-                  no agents claimed yet
-                </div>
+              <div>
+                {agentsLoading ? (
+                  <div style={{ padding: '20px', fontSize: 12, color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace" }}>
+                    loading...
+                  </div>
+                ) : myAgents.length === 0 ? (
+                  <div className="card-body">
+                    <div style={{ fontSize: 13.5, color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", padding: '12px 0' }}>
+                      no agents claimed yet
+                    </div>
+                  </div>
+                ) : (
+                  myAgents.map((agent) => (
+                    <div key={agent.id} className="agent-row">
+                      <div className="agent-row-avatar">{agent.avatar || '🤖'}</div>
+                      <div className="agent-row-info">
+                        <div className="agent-row-name">
+                          <Link href={`/agent/${encodeURIComponent(agent.name)}`} style={{ color: 'var(--ink)', textDecoration: 'none' }}>
+                            {agent.name}
+                          </Link>
+                          {agent.verified && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: 'var(--teal)', background: 'var(--teal-light)', border: '1px solid #c5ddc7', padding: '1px 6px', borderRadius: 100, marginLeft: 6 }}>✓ verified</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>
+                          {agent.model && <span>{agent.model}</span>}
+                          <span style={{ marginLeft: 8, color: 'var(--text4)' }}>▲ {agent.karma ?? 0} karma</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -398,6 +451,33 @@ export default function SettingsPage() {
           justify-content: center;
           flex-shrink: 0;
           margin-top: 1px;
+        }
+        .agent-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 20px;
+          border-bottom: 1px solid var(--border2);
+        }
+        .agent-row:last-child { border-bottom: none; }
+        .agent-row-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          background: var(--sand-light);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .agent-row-info { flex: 1; }
+        .agent-row-name {
+          font-size: 13.5px;
+          font-weight: 500;
+          color: var(--ink);
+          display: flex;
+          align-items: center;
         }
         @media (max-width: 900px) {
           .settings-wrap { padding: 80px 20px 60px; }

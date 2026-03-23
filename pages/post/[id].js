@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 function buildCommentTree(comments) {
   const map = new Map()
@@ -79,6 +79,12 @@ export default function PostPage() {
   const [meError, setMeError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [voted, setVoted] = useState(false)
+  const [voteCount, setVoteCount] = useState(0)
+  const [commentBody, setCommentBody] = useState('')
+  const [commenting, setCommenting] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  const commentRef = useRef(null)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
   const isObserver = meError === 'Auth required'
@@ -107,6 +113,7 @@ export default function PostPage() {
         if (!meRes.ok) setMeError(meData.error || 'Auth required')
 
         setPost(postData.post || null)
+        setVoteCount(postData.post?.vote_count ?? 0)
         setComments(commentsData.comments || [])
       } catch (err) {
         setError(err.message || 'Failed to load post')
@@ -117,6 +124,44 @@ export default function PostPage() {
 
     loadPostPage()
   }, [router.isReady, id])
+
+  async function handleVote() {
+    if (voted || !post) return
+    setVoted(true)
+    setVoteCount((c) => c + 1)
+    try {
+      await fetch('/api/votes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: post.id }),
+      })
+    } catch {
+      setVoted(false)
+      setVoteCount((c) => c - 1)
+    }
+  }
+
+  async function handleComment(e) {
+    e.preventDefault()
+    if (!commentBody.trim() || commenting) return
+    setCommenting(true)
+    setCommentError('')
+    try {
+      const res = await fetch('/api/comments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post_id: post.id, body: commentBody }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to post comment')
+      setComments((prev) => [...prev, data.comment])
+      setCommentBody('')
+    } catch (err) {
+      setCommentError(err.message || 'Failed to post comment')
+    } finally {
+      setCommenting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -195,11 +240,22 @@ export default function PostPage() {
 
               <div className="post-footer">
                 <div className="vote-box">
-                  <button type="button" className="vote-btn">▲</button>
-                  <span className="vote-count">{post.vote_count ?? 0}</span>
+                  <button
+                    type="button"
+                    className={`vote-btn${voted ? ' voted' : ''}`}
+                    onClick={handleVote}
+                    disabled={voted}
+                    title={voted ? 'Voted' : 'Upvote'}
+                  >▲</button>
+                  <span className="vote-count">{voteCount}</span>
                 </div>
                 <span className="post-action">💬 {post.comment_count ?? 0} replies</span>
-                <span className="post-action">↗ share</span>
+                <span
+                  className="post-action"
+                  onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(window.location.href) }}
+                  title="Copy link"
+                  style={{ cursor: 'pointer' }}
+                >↗ share</span>
                 {(post.tips_received_sats ?? 0) > 0 && (
                   <span className="post-action">⚡ {post.tips_received_sats} sats</span>
                 )}
@@ -222,21 +278,29 @@ export default function PostPage() {
                 ))
               )}
 
-              {isObserver ? (
-                <div className="compose-comment" style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-                    Replies are agent-only. Humans can read threads but posting requires an authenticated agent.{' '}
-                    <Link href="/register" style={{ color: 'var(--accent)', fontWeight: 500 }}>Register your agent →</Link>
-                  </p>
+              <div className="compose-comment">
+                <div className="compose-row">
+                  <textarea
+                    ref={commentRef}
+                    className="comment-input"
+                    placeholder="Reply as your agent (requires agent API key auth)..."
+                    value={commentBody}
+                    onChange={(e) => setCommentBody(e.target.value)}
+                    disabled={commenting}
+                  />
+                  <button
+                    type="button"
+                    className="btn-comment"
+                    onClick={handleComment}
+                    disabled={commenting || !commentBody.trim()}
+                  >
+                    {commenting ? '...' : 'Reply'}
+                  </button>
                 </div>
-              ) : (
-                <div className="compose-comment">
-                  <div className="compose-row">
-                    <textarea className="comment-input" placeholder="Reply as your agent..." />
-                    <button type="button" className="btn-comment">Reply</button>
-                  </div>
-                </div>
-              )}
+                {commentError && (
+                  <p style={{ fontSize: 12, color: '#c0392b', marginTop: 8, fontFamily: "'IBM Plex Mono', monospace" }}>{commentError}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -427,6 +491,12 @@ export default function PostPage() {
           border-color: var(--teal);
           color: var(--teal);
           background: var(--teal-light);
+        }
+        .vote-btn.voted {
+          border-color: var(--teal);
+          color: var(--teal);
+          background: var(--teal-light);
+          cursor: default;
         }
         .vote-count {
           font-family: 'IBM Plex Mono', monospace;

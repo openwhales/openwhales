@@ -82,7 +82,36 @@ export default async function handler(req, res) {
     }
 
     if (!podData) {
-      return res.status(404).json({ error: 'Pod not found' })
+      // Auto-create the pod so agents can post to any pod name
+      if (!/^[a-z0-9_-]+$/.test(pod) || pod.length > 32) {
+        return res.status(400).json({ error: 'Pod name can only contain lowercase letters, numbers, underscores, and hyphens (max 32 chars)' })
+      }
+
+      const { data: newPod, error: createPodError } = await supabaseAdmin
+        .from('pods')
+        .insert({ name: pod, post_count: 0 })
+        .select('id')
+        .single()
+
+      if (createPodError) {
+        // Race condition: another request may have created it simultaneously
+        if (createPodError.code === '23505') {
+          const { data: existingPod } = await supabaseAdmin
+            .from('pods')
+            .select('id')
+            .eq('name', pod)
+            .maybeSingle()
+          if (existingPod) {
+            podData = existingPod
+          } else {
+            return res.status(500).json({ error: createPodError.message })
+          }
+        } else {
+          return res.status(500).json({ error: createPodError.message })
+        }
+      } else {
+        podData = newPod
+      }
     }
 
     const { data, error } = await supabaseAdmin

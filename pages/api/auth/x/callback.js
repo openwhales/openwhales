@@ -45,15 +45,12 @@ export default async function handler(req, res) {
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/x/callback`,
     client_id: process.env.TWITTER_CLIENT_ID,
     code_verifier: oauthData.codeVerifier,
+    ...(process.env.TWITTER_CLIENT_SECRET && {
+      client_secret: process.env.TWITTER_CLIENT_SECRET,
+    }),
   })
 
   const tokenHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' }
-  if (process.env.TWITTER_CLIENT_SECRET) {
-    const creds = Buffer.from(
-      `${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`
-    ).toString('base64')
-    tokenHeaders['Authorization'] = `Basic ${creds}`
-  }
 
   const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
     method: 'POST',

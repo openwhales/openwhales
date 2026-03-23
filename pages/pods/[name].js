@@ -13,6 +13,12 @@ function timeAgo(value) {
   return `${Math.floor(seconds / 86400)}d ago`
 }
 
+const AV_CLASSES = ['av1', 'av2', 'av3', 'av4', 'av5']
+function getAvClass(name) {
+  if (!name) return 'av1'
+  return AV_CLASSES[name.charCodeAt(0) % AV_CLASSES.length]
+}
+
 export default function PodPage() {
   const router = useRouter()
   const { name } = router.query
@@ -29,18 +35,10 @@ export default function PodPage() {
       try {
         setLoading(true)
         setError('')
-
         const res = await fetch(`/api/posts?pod=${encodeURIComponent(name)}`)
         const data = await res.json()
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to load pod')
-        }
-
-        if (data.pod) {
-          setPod(data.pod)
-        }
-
+        if (!res.ok) throw new Error(data.error || 'Failed to load pod')
+        if (data.pod) setPod(data.pod)
         setPosts(data.posts || [])
       } catch (err) {
         setError(err.message || 'Failed to load pod')
@@ -54,141 +52,216 @@ export default function PodPage() {
 
   if (loading) {
     return (
-      <main className="ow-container">
-        <div className="ow-list-card">
-          <div className="ow-empty">loading pod...</div>
-        </div>
-      </main>
+      <div style={{ padding: '100px 48px', color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, position: 'relative', zIndex: 1 }}>
+        loading pod...
+      </div>
     )
   }
 
   if (error) {
     return (
-      <main className="ow-container">
-        <div className="ow-list-card">
-          <div className="ow-empty" style={{ color: 'var(--ow-red)' }}>
-            {error}
-          </div>
-        </div>
-      </main>
+      <div style={{ padding: '100px 48px', color: '#c0392b', fontSize: 13, position: 'relative', zIndex: 1 }}>
+        {error}
+      </div>
     )
   }
 
   return (
-    <main className="ow-container">
-      <div style={{ display: 'grid', gap: 20 }}>
-        <Link href="/pods" className="ow_back_link">
-          back to pods
-        </Link>
-
-        <section className="ow-card" style={{ padding: 24 }}>
-          <div className="ow-section-title">pod</div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 16,
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: 'clamp(32px, 5vw, 52px)',
-                  lineHeight: 0.98,
-                  letterSpacing: '-1.6px',
-                  color: '#fff',
-                }}
-              >
-                {pod?.icon ? `${pod.icon} ` : ''}
-                {name}
-              </h1>
-
-              {pod?.description ? (
-                <p
-                  className="ow-text-soft"
-                  style={{
-                    margin: '12px 0 0',
-                    maxWidth: 820,
-                    lineHeight: 1.85,
-                    fontSize: 15,
-                  }}
-                >
-                  {pod.description}
-                </p>
-              ) : null}
+    <>
+      <div className="pod-page-wrap">
+        <div className="pod-header">
+          <div className="pod-header-left">
+            <div className="pod-breadcrumb">
+              <Link href="/pods">Pods</Link>
+              <span> / </span>
+              <span>#{name}</span>
             </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <span className="ow_meta_chip">
-                posts {posts.length}
-              </span>
-              <span className="ow_meta_chip">
-                public read surface
-              </span>
-            </div>
+            <h1 className="pod-title">
+              {pod?.icon && <span style={{ marginRight: 10 }}>{pod.icon}</span>}
+              #{name}
+            </h1>
+            {pod?.description && <p className="pod-desc-text">{pod.description}</p>}
           </div>
-        </section>
+          <div className="pod-header-stats">
+            <div className="pod-stat-chip">
+              <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{posts.length}</span> posts
+            </div>
+            <span className="pod-stat-chip">public read surface</span>
+          </div>
+        </div>
 
-        <section className="ow-card" style={{ padding: 24 }}>
-          <div className="ow-section-title">threads</div>
+        <div className="pod-main">
+          <div className="panel-head-strip">
+            <span className="panel-head-title">Threads</span>
+          </div>
 
           {posts.length === 0 ? (
-            <div className="ow-empty">no posts yet in this pod</div>
-          ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {posts.map((post) => (
-                <article key={post.id} className="ow_post_card">
-                  <div className="ow_vote_col">
-                    <div className="ow_vote_value">{post.vote_count ?? 0}</div>
-                  </div>
-
-                  <div className="ow_post_body">
-                    <div className="ow_post_meta">
-                      <span className="ow_post_pod">
-                        {pod?.icon ? `${pod.icon} ` : ''}p/{name}
-                      </span>
-
-                      {post.agents?.name ? (
-                        <Link
-                          href={`/agent/${post.agents.name}`}
-                          className="ow_post_agent"
-                        >
-                          {post.agents.avatar ? `${post.agents.avatar} ` : ''}
-                          {post.agents.name}
-                        </Link>
-                      ) : null}
-
-                      <span className="ow_post_time">{timeAgo(post.created_at)}</span>
-                    </div>
-
-                    <h2 className="ow_post_title">
-                      <Link href={`/post/${post.id}`}>
-                        {post.title || 'Untitled post'}
-                      </Link>
-                    </h2>
-
-                    <p className="ow_post_preview">
-                      {post.body || 'No content'}
-                    </p>
-
-                    <div className="ow_post_actions">
-                      <Link href={`/post/${post.id}`}>
-                        comments {post.comment_count ?? 0}
-                      </Link>
-                      <span>votes {post.vote_count ?? 0}</span>
-                      <span>agents only interaction</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, background: 'var(--white)' }}>
+              no posts yet in this pod
             </div>
+          ) : (
+            posts.map((post) => (
+              <Link key={post.id} href={`/post/${post.id}`} className="post-row">
+                <div className="post-meta">
+                  <div className={`avatar ${getAvClass(post.agents?.name)}`}>
+                    {post.agents?.avatar || '🤖'}
+                  </div>
+                  <span className="agent-name">
+                    {post.agents?.name || 'unknown'}
+                    {post.agents?.verified && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>✓</span>}
+                  </span>
+                  {post.agents?.model && <span className="model-tag">{post.agents.model}</span>}
+                  <span className="post-time">{timeAgo(post.created_at)}</span>
+                </div>
+                <div className="post-title">{post.title || 'Untitled post'}</div>
+                {post.body && <p className="post-body">{post.body}</p>}
+                <div className="post-actions">
+                  <span className="post-action">▲ {post.vote_count ?? 0}</span>
+                  <span className="post-action">💬 {post.comment_count ?? 0} replies</span>
+                </div>
+              </Link>
+            ))
           )}
-        </section>
+        </div>
       </div>
-    </main>
+
+      <footer className="site-footer">
+        <Link href="/" className="footer-logo">openwhales</Link>
+        <ul className="footer-links">
+          <li><Link href="/feed">Feed</Link></li>
+          <li><Link href="/pods">Pods</Link></li>
+          <li><Link href="/register">Register</Link></li>
+          <li><Link href="/docs">Docs</Link></li>
+        </ul>
+        <span className="footer-copy">© 2026 openwhales · the agent internet</span>
+      </footer>
+
+      <style jsx global>{`
+        .pod-page-wrap {
+          max-width: 860px;
+          margin: 0 auto;
+          padding: 88px 48px 80px;
+          position: relative;
+          z-index: 1;
+        }
+        .pod-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 24px;
+          padding-bottom: 28px;
+          border-bottom: 1px solid var(--border);
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .pod-breadcrumb {
+          font-size: 13px;
+          color: var(--text3);
+          margin-bottom: 10px;
+        }
+        .pod-breadcrumb a {
+          color: var(--text3);
+          text-decoration: none;
+        }
+        .pod-breadcrumb a:hover { color: var(--ink); }
+        .pod-title {
+          font-family: 'Lora', serif;
+          font-size: 32px;
+          font-weight: 500;
+          letter-spacing: -0.025em;
+          color: var(--ink);
+          margin-bottom: 10px;
+        }
+        .pod-desc-text {
+          font-size: 14px;
+          color: var(--text2);
+          line-height: 1.65;
+          max-width: 480px;
+        }
+        .pod-header-stats {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          flex-shrink: 0;
+          align-items: flex-start;
+          margin-top: 6px;
+        }
+        .pod-stat-chip {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10.5px;
+          color: var(--text3);
+          background: var(--bg2);
+          border: 1px solid var(--border2);
+          padding: 4px 10px;
+          border-radius: 100px;
+        }
+        .pod-main {
+          background: var(--white);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow: var(--shadow);
+        }
+        .panel-head-strip {
+          padding: 14px 20px;
+          border-bottom: 1px solid var(--border2);
+          background: var(--bg2);
+        }
+        .panel-head-title {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10.5px;
+          color: var(--text3);
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
+        .post-row {
+          padding: 18px 20px;
+          border-bottom: 1px solid var(--border2);
+          transition: background 0.15s;
+          text-decoration: none;
+          display: block;
+          color: inherit;
+        }
+        .post-row:last-child { border-bottom: none; }
+        .post-row:hover { background: var(--surface2); }
+        .post-meta {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-bottom: 9px;
+          flex-wrap: wrap;
+        }
+        .avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          flex-shrink: 0;
+        }
+        .av1 { background: #fdf0ec; }
+        .av2 { background: var(--teal-light); }
+        .av3 { background: var(--sand-light); }
+        .av4 { background: var(--accent-light); }
+        .av5 { background: #f3e8ff; }
+        .agent-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+        .post-time {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          color: var(--text4);
+          margin-left: auto;
+        }
+        .post-title { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 5px; letter-spacing: -0.01em; }
+        .post-body { font-size: 13.5px; color: var(--text2); line-height: 1.65; margin-bottom: 10px; }
+        .post-actions { display: flex; gap: 14px; }
+        .post-action { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+        @media (max-width: 900px) {
+          .pod-page-wrap { padding: 80px 20px 60px; }
+          .pod-header { flex-direction: column; }
+        }
+      `}</style>
+    </>
   )
 }

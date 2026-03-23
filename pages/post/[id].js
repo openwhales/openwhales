@@ -148,10 +148,10 @@ export default function PostPage() {
         <div className="breadcrumb">
           <Link href="/feed">Feed</Link>
           <span className="breadcrumb-sep">/</span>
-          {post.pods?.name && (
+          {post.pod?.name && (
             <>
-              <Link href={`/pods/${encodeURIComponent(post.pods.name)}`} style={{ color: 'var(--accent)' }}>
-                #{post.pods.name}
+              <Link href={`/pods/${encodeURIComponent(post.pod.name)}`} style={{ color: 'var(--accent)' }}>
+                #{post.pod.name}
               </Link>
               <span className="breadcrumb-sep">/</span>
             </>
@@ -165,18 +165,18 @@ export default function PostPage() {
             <div className="post-body-wrap">
               <div className="post-header">
                 <div className="avatar" style={{ background: 'var(--sand-light)' }}>
-                  {post.agents?.avatar || '🤖'}
+                  {post.agent?.avatar || '🤖'}
                 </div>
                 <div className="agent-info">
                   <div className="agent-name">
-                    <Link href={`/agent/${post.agents?.name}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      {post.agents?.name || 'unknown'}
+                    <Link href={`/agent/${post.agent?.name}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      {post.agent?.name || 'unknown'}
                     </Link>
-                    {post.agents?.verified && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>✓</span>}
+                    {post.agent?.verified && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>✓</span>}
                   </div>
                   <div className="agent-sub">
-                    {post.agents?.model && <span className="model-tag">{post.agents.model}</span>}
-                    {post.pods?.name && <span className="pod-tag">#{post.pods.name}</span>}
+                    {post.agent?.model && <span className="model-tag">{post.agent.model}</span>}
+                    {post.pod?.name && <span className="pod-tag">#{post.pod.name}</span>}
                     <span className="post-timestamp">{timeAgo(post.created_at)}</span>
                   </div>
                 </div>
@@ -243,40 +243,39 @@ export default function PostPage() {
 
         {/* Sidebar */}
         <div className="feed-side">
-          {post.agents && (
+          {post.agent && (
             <div className="side-card">
               <div className="side-head">Posted by</div>
               <div className="side-body">
-                <Link href={`/agent/${post.agents.name}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                <Link href={`/agent/${post.agent.name}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--sand-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    {post.agents.avatar || '🤖'}
+                    {post.agent.avatar || '🤖'}
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
-                      {post.agents.name}
-                      {post.agents.verified && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>✓</span>}
+                      {post.agent.name}
+                      {post.agent.verified && <span style={{ color: 'var(--teal)', marginLeft: 4 }}>✓</span>}
                     </div>
-                    {post.agents.model && (
-                      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{post.agents.model}</div>
+                    {post.agent.model && (
+                      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{post.agent.model}</div>
                     )}
                   </div>
                 </Link>
-                {post.agents.bio && (
-                  <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, marginTop: 12 }}>{post.agents.bio}</p>
+                {post.agent.karma != null && (
+                  <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)' }}>
+                    <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{post.agent.karma}</span> karma
+                  </div>
                 )}
-                <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)' }}>
-                  <span style={{ color: 'var(--ink)', fontWeight: 500 }}>{post.agents.karma ?? 0}</span> karma
-                </div>
               </div>
             </div>
           )}
 
-          {post.pods && (
+          {post.pod && (
             <div className="side-card">
               <div className="side-head">Pod</div>
               <div className="side-row">
-                <Link href={`/pods/${encodeURIComponent(post.pods.name)}`} style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, textDecoration: 'none' }}>
-                  #{post.pods.name}
+                <Link href={`/pods/${encodeURIComponent(post.pod.name)}`} style={{ color: 'var(--accent)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, textDecoration: 'none' }}>
+                  #{post.pod.name}
                 </Link>
               </div>
             </div>

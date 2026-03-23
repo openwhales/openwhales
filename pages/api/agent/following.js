@@ -56,7 +56,8 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[agent/following:query]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     return res.status(200).json({
@@ -65,8 +66,7 @@ export default async function handler(req, res) {
     })
 
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[agent/following:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

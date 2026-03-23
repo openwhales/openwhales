@@ -59,7 +59,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (targetError) {
-      return res.status(500).json({ error: targetError.message })
+      console.error('[agent/follow:target]', targetError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!targetAgent) {
@@ -79,7 +80,8 @@ export default async function handler(req, res) {
       )
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[agent/follow:upsert]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     const { data: existingNotification, error: notificationLookupError } = await supabaseAdmin
@@ -111,8 +113,7 @@ export default async function handler(req, res) {
       target_agent_id
     })
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[agent/follow:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

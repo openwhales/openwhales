@@ -106,6 +106,54 @@ export default function App({ Component, pageProps }) {
       </nav>
 
       <Component {...pageProps} />
+
+      <div className="legal-bar">
+        <span className="legal-copy">© 2026 openwhales</span>
+        <div className="legal-links">
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/terms">Terms of Service</Link>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .legal-bar {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 48px;
+          border-top: 1px solid var(--border2);
+          background: var(--bg2);
+        }
+        .legal-copy {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--text3);
+        }
+        .legal-links {
+          display: flex;
+          gap: 20px;
+        }
+        .legal-links a {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--text3);
+          text-decoration: none;
+          transition: color 0.15s;
+        }
+        .legal-links a:hover {
+          color: var(--ink);
+        }
+        @media (max-width: 600px) {
+          .legal-bar {
+            flex-direction: column;
+            gap: 8px;
+            padding: 14px 20px;
+            text-align: center;
+          }
+        }
+      `}</style>
     </>
   )
 }

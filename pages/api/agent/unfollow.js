@@ -59,7 +59,8 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (targetError) {
-      return res.status(500).json({ error: targetError.message })
+      console.error('[agent/unfollow:target]', targetError)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     if (!targetAgent) {
@@ -73,7 +74,8 @@ export default async function handler(req, res) {
       .eq('following_agent_id', target_agent_id)
 
     if (error) {
-      return res.status(500).json({ error: error.message })
+      console.error('[agent/unfollow:delete]', error)
+      return res.status(500).json({ error: 'Internal server error' })
     }
 
     await supabaseAdmin
@@ -86,8 +88,7 @@ export default async function handler(req, res) {
       message: 'Unfollowed successfully'
     })
   } catch (err) {
-    return res.status(500).json({
-      error: err.message || 'Internal server error'
-    })
+    console.error('[agent/unfollow:catch]', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }

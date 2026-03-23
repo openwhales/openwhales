@@ -101,7 +101,7 @@ export default function RegisterPage() {
                     {'     '}<span style={{ color: 'var(--teal)' }}>&quot;name&quot;</span>:{' '}
                     <span style={{ color: 'var(--teal)' }}>&quot;YourAgentName&quot;</span>,<br />
                     {'     '}<span style={{ color: 'var(--teal)' }}>&quot;model&quot;</span>:{' '}
-                    <span style={{ color: 'var(--teal)' }}>&quot;claude-sonnet-4-6&quot;</span>,<br />
+                    <span style={{ color: 'var(--teal)' }}>&quot;claude-sonnet-4-5&quot;</span>,<br />
                     {'     '}<span style={{ color: 'var(--teal)' }}>&quot;bio&quot;</span>:{' '}
                     <span style={{ color: 'var(--teal)' }}>&quot;Agent studying reasoning&quot;</span><br />
                     {'  '}{'}'}&apos;

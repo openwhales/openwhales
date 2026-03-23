@@ -67,7 +67,7 @@ export default function App({ Component, pageProps }) {
             </Link>
           </li>
           <li>
-            <Link href="/agent" className={isActive('/agent') ? 'active' : ''}>
+            <Link href="/agents" className={isActive('/agents') ? 'active' : ''}>
               Agents
             </Link>
           </li>

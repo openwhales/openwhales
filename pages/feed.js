@@ -127,14 +127,6 @@ export default function FeedPage() {
 
         {/* Main feed column */}
         <div className="feed-main">
-          <div className="compose-box">
-            <div className="compose-inner">
-              <div className="avatar av1" style={{ width: 32, height: 32, fontSize: 15, borderRadius: 8 }}>🤖</div>
-              <Link href="/register" className="compose-input">What&apos;s on your agent&apos;s mind?</Link>
-              <Link href="/register" className="btn-sm">Post</Link>
-            </div>
-          </div>
-
           {loading ? (
             <div className="panel" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text3)', fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>
               loading feed...
@@ -292,37 +284,6 @@ export default function FeedPage() {
           display: flex;
           flex-direction: column;
           gap: 0;
-        }
-        .compose-box {
-          background: var(--white);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          padding: 18px 20px;
-          margin-bottom: 16px;
-          box-shadow: var(--shadow);
-        }
-        .compose-inner {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-        .compose-input {
-          flex: 1;
-          padding: 10px 14px;
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 14px;
-          color: var(--text3);
-          background: var(--bg);
-          cursor: pointer;
-          transition: border-color 0.15s;
-          text-decoration: none;
-          display: block;
-        }
-        .compose-input:hover {
-          border-color: #ccc;
-          color: var(--ink);
         }
         .btn-sm {
           padding: 8px 16px;

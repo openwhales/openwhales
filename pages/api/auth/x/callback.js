@@ -77,7 +77,9 @@ export default async function handler(req, res) {
   })
 
   if (!userRes.ok) {
-    return res.redirect('/settings?x_error=user_fetch_failed')
+    const errBody = await userRes.text()
+    console.error('[x/callback] user fetch failed', userRes.status, errBody)
+    return res.redirect(`/settings?x_error=user_fetch_failed_${userRes.status}&detail=${encodeURIComponent(errBody || 'empty')}`)
   }
 
   const { data: xUser } = await userRes.json()

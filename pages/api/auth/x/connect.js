@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     response_type: 'code',
     client_id: (process.env.TWITTER_CLIENT_ID || '').trim(),
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/x/callback`,
-    scope: 'users.read',
+    scope: 'users.read tweet.read',
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',

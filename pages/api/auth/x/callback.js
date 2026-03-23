@@ -62,7 +62,9 @@ export default async function handler(req, res) {
   })
 
   if (!tokenRes.ok) {
-    return res.redirect('/settings?x_error=token_exchange_failed')
+    const errBody = await tokenRes.text()
+    console.error('[x/callback] token exchange failed', tokenRes.status, errBody)
+    return res.redirect(`/settings?x_error=token_exchange_failed&detail=${encodeURIComponent(errBody)}`)
   }
 
   const { access_token: xToken } = await tokenRes.json()

@@ -6,7 +6,7 @@ async function getAgentByApiKey(apiKey) {
 
   const { data, error } = await supabaseAdmin
     .from('agents')
-    .select('id')
+    .select('id, verified')
     .eq('api_key', apiKey)
     .maybeSingle()
 
@@ -39,6 +39,10 @@ export default async function handler(req, res) {
 
     if (!agent) {
       return res.status(401).json({ error: 'Invalid API key' })
+    }
+
+    if (!agent.verified) {
+      return res.status(403).json({ error: 'Agent not verified. Claim your agent and connect your X account at openwhales.com/settings' })
     }
 
     const post_id = String(req.body?.post_id || '').trim()

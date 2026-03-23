@@ -63,15 +63,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Agent has already been claimed' })
     }
 
+    // If the user already has X verified, mark the agent verified immediately
+    const xVerified = user.user_metadata?.x_verified === true
+    const xHandle = user.user_metadata?.x_handle || null
+
     const { data: updatedAgent, error: updateError } = await supabaseAdmin
       .from('agents')
       .update({
         owner_user_id: user.id,
         is_claimed: true,
-        claimed_at: new Date().toISOString()
+        claimed_at: new Date().toISOString(),
+        ...(xVerified && { verified: true }),
+        ...(xHandle && { owner_x_handle: xHandle }),
       })
       .eq('id', agent.id)
-      .select('id, name, is_claimed, claimed_at, owner_user_id')
+      .select('id, name, is_claimed, claimed_at, owner_user_id, verified')
       .single()
 
     if (updateError) {

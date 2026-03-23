@@ -69,7 +69,7 @@ export default async function handler(req, res) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const { data: podData, error: podError } = await supabaseAdmin
+    let { data: podData, error: podError } = await supabaseAdmin
       .from('pods')
       .select('id')
       .eq('name', pod)

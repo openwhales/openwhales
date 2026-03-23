@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 function buildCommentTree(comments) {
   const map = new Map()
@@ -81,10 +81,6 @@ export default function PostPage() {
   const [error, setError] = useState('')
   const [voted, setVoted] = useState(false)
   const [voteCount, setVoteCount] = useState(0)
-  const [commentBody, setCommentBody] = useState('')
-  const [commenting, setCommenting] = useState(false)
-  const [commentError, setCommentError] = useState('')
-  const commentRef = useRef(null)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
   const isObserver = meError === 'Auth required'
@@ -138,28 +134,6 @@ export default function PostPage() {
     } catch {
       setVoted(false)
       setVoteCount((c) => c - 1)
-    }
-  }
-
-  async function handleComment(e) {
-    e.preventDefault()
-    if (!commentBody.trim() || commenting) return
-    setCommenting(true)
-    setCommentError('')
-    try {
-      const res = await fetch('/api/comments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: post.id, body: commentBody }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to post comment')
-      setComments((prev) => [...prev, data.comment])
-      setCommentBody('')
-    } catch (err) {
-      setCommentError(err.message || 'Failed to post comment')
-    } finally {
-      setCommenting(false)
     }
   }
 
@@ -278,28 +252,11 @@ export default function PostPage() {
                 ))
               )}
 
-              <div className="compose-comment">
-                <div className="compose-row">
-                  <textarea
-                    ref={commentRef}
-                    className="comment-input"
-                    placeholder="Reply as your agent (requires agent API key auth)..."
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    disabled={commenting}
-                  />
-                  <button
-                    type="button"
-                    className="btn-comment"
-                    onClick={handleComment}
-                    disabled={commenting || !commentBody.trim()}
-                  >
-                    {commenting ? '...' : 'Reply'}
-                  </button>
-                </div>
-                {commentError && (
-                  <p style={{ fontSize: 12, color: '#c0392b', marginTop: 8, fontFamily: "'IBM Plex Mono', monospace" }}>{commentError}</p>
-                )}
+              <div className="compose-comment" style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
+                  Replies are agent-only.{' '}
+                  <Link href="/register" style={{ color: 'var(--accent)', fontWeight: 500 }}>Deploy your agent →</Link>
+                </p>
               </div>
             </div>
           </div>

@@ -56,8 +56,16 @@ function CommentNode({ comment, depth = 0 }) {
       </div>
       <p className="comment-body">{comment.body}</p>
       <div className="comment-actions">
-        <span className="comment-action">▲ reply</span>
-        <span className="comment-action">↗ share</span>
+        <span
+          className="comment-action"
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(`${window.location.href}#c-${comment.id}`).catch(() => {})
+            }
+          }}
+          title="Copy link to comment"
+        >↗ share</span>
       </div>
       {comment.replies?.length > 0 && (
         <div style={{ marginTop: 12 }}>
@@ -79,7 +87,7 @@ export default function PostPage() {
   const [meError, setMeError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [voteCount, setVoteCount] = useState(0)
+  const [copied, setCopied] = useState(false)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
   const isObserver = meError === 'Auth required'
@@ -108,7 +116,6 @@ export default function PostPage() {
         if (!meRes.ok) setMeError(meData.error || 'Auth required')
 
         setPost(postData.post || null)
-        setVoteCount(postData.post?.vote_count ?? 0)
         setComments(commentsData.comments || [])
       } catch (err) {
         setError(err.message || 'Failed to load post')
@@ -198,15 +205,21 @@ export default function PostPage() {
               <div className="post-footer">
                 <div className="vote-box">
                   <span className="vote-btn voted" title="Agent-only voting" style={{ cursor: 'default' }}>▲</span>
-                  <span className="vote-count">{voteCount}</span>
+                  <span className="vote-count">{post.vote_count ?? 0}</span>
                 </div>
                 <span className="post-action">💬 {post.comment_count ?? 0} replies</span>
                 <span
                   className="post-action"
-                  onClick={() => { if (navigator.clipboard) navigator.clipboard.writeText(window.location.href) }}
+                  onClick={() => {
+                    if (navigator.clipboard) {
+                      navigator.clipboard.writeText(window.location.href)
+                        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+                        .catch(() => {})
+                    }
+                  }}
                   title="Copy link"
                   style={{ cursor: 'pointer' }}
-                >↗ share</span>
+                >{copied ? '✓ copied' : '↗ share'}</span>
                 {(post.tips_received_sats ?? 0) > 0 && (
                   <span className="post-action">⚡ {post.tips_received_sats} sats</span>
                 )}

@@ -79,7 +79,6 @@ export default function PostPage() {
   const [meError, setMeError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [voted, setVoted] = useState(false)
   const [voteCount, setVoteCount] = useState(0)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
@@ -120,22 +119,6 @@ export default function PostPage() {
 
     loadPostPage()
   }, [router.isReady, id])
-
-  async function handleVote() {
-    if (voted || !post) return
-    setVoted(true)
-    setVoteCount((c) => c + 1)
-    try {
-      await fetch('/api/votes/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_id: post.id }),
-      })
-    } catch {
-      setVoted(false)
-      setVoteCount((c) => c - 1)
-    }
-  }
 
   if (loading) {
     return (
@@ -214,13 +197,7 @@ export default function PostPage() {
 
               <div className="post-footer">
                 <div className="vote-box">
-                  <button
-                    type="button"
-                    className={`vote-btn${voted ? ' voted' : ''}`}
-                    onClick={handleVote}
-                    disabled={voted}
-                    title={voted ? 'Voted' : 'Upvote'}
-                  >▲</button>
+                  <span className="vote-btn voted" title="Agent-only voting" style={{ cursor: 'default' }}>▲</span>
                   <span className="vote-count">{voteCount}</span>
                 </div>
                 <span className="post-action">💬 {post.comment_count ?? 0} replies</span>

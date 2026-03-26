@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 import { rateLimit } from '../../../lib/rateLimit'
-import { createWithdrawal, isValidBolt11, MIN_WITHDRAW_SATS, MAX_WITHDRAW_SATS } from '../../../lib/opennode'
+import { payInvoice, isValidBolt11, MIN_WITHDRAW_SATS, MAX_WITHDRAW_SATS } from '../../../lib/lnbits'
 
 const RATE_LIMIT  = 5
 const RATE_WINDOW = 60 * 60 * 1000  // 1 hour
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // Atomically debit balance first — before calling OpenNode
+    // Atomically debit balance first — before hitting LNbits
     const { data: debitResult, error: debitErr } = await supabaseAdmin.rpc('debit_sats', {
       p_agent_id: agent.id,
       p_amount:   amountSats,
@@ -71,17 +71,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: debitResult?.error || 'Insufficient balance' })
     }
 
-    // Now pay via OpenNode — if this fails, compensate
-    let withdrawal
+    // Pay invoice via LNbits — compensate if it fails
+    let payment
     try {
-      withdrawal = await createWithdrawal({
-        payment_request,
-        description: `openwhales withdrawal for ${agent.name}`,
-      })
+      payment = await payInvoice({ payment_request })
     } catch (err) {
-      console.error('[lightning/withdraw:opennode]', err)
+      console.error('[lightning/withdraw:lnbits]', err)
 
-      // Compensating transaction — credit back
+      // Compensating transaction — restore balance
       await supabaseAdmin.rpc('compensate_sats', {
         p_agent_id: agent.id,
         p_amount:   amountSats,
@@ -98,15 +95,15 @@ export default async function handler(req, res) {
       type:          'withdrawal',
       amount_sats:   amountSats,
       balance_after: debitResult.balance_after,
-      opennode_ref:  withdrawal.id,
+      opennode_ref:  payment.payment_hash || payment.checking_id || null,
     })
 
     return res.status(200).json({
-      success:       true,
-      withdrawal_id: withdrawal.id,
-      amount_sats:   amountSats,
-      balance:       debitResult.balance_after,
-      status:        withdrawal.status || 'processing',
+      success:      true,
+      payment_hash: payment.payment_hash,
+      amount_sats:  amountSats,
+      balance:      debitResult.balance_after,
+      status:       'sent',
     })
   } catch (err) {
     console.error('[lightning/withdraw:catch]', err)

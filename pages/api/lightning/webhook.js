@@ -1,7 +1,6 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
-import { verifyWebhook } from '../../../lib/opennode'
+import { getPayment } from '../../../lib/lnbits'
 
-// OpenNode sends raw body — disable Next.js body parsing so we get the raw payload
 export const config = { api: { bodyParser: true } }
 
 export default async function handler(req, res) {
@@ -11,30 +10,36 @@ export default async function handler(req, res) {
 
   try {
     const payload = req.body || {}
-    const { id: chargeId, status, hashed_order } = payload
 
-    if (!chargeId || !hashed_order) {
-      return res.status(400).json({ error: 'Invalid webhook payload' })
+    // LNbits webhook payload contains payment_hash (also as checking_id)
+    const payment_hash = payload.payment_hash || payload.checking_id
+
+    if (!payment_hash) {
+      return res.status(400).json({ error: 'Invalid webhook payload — no payment_hash' })
     }
 
-    // Verify HMAC signature — reject anything that fails
-    if (!verifyWebhook({ id: chargeId, hashed_order })) {
-      console.error('[lightning/webhook] Invalid HMAC signature', { chargeId })
-      return res.status(401).json({ error: 'Invalid signature' })
+    // Verify with LNbits API — confirms this payment is actually paid
+    // This prevents spoofed webhook calls since only we know valid payment hashes
+    let payment
+    try {
+      payment = await getPayment(payment_hash)
+    } catch (err) {
+      console.error('[lightning/webhook:verify]', err)
+      return res.status(502).json({ error: 'Could not verify payment with LNbits' })
     }
 
-    // Only credit on paid status
-    if (status !== 'paid') {
-      return res.status(200).json({ received: true, action: 'noop', status })
+    if (!payment?.paid) {
+      // Not paid yet — LNbits also fires webhooks on invoice creation in some configs
+      return res.status(200).json({ received: true, action: 'noop', paid: false })
     }
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    // Look up the pending invoice
+    // Look up the pending invoice by payment_hash (stored in opennode_charge_id column)
     const { data: invoice, error: invErr } = await supabaseAdmin
       .from('lightning_invoices')
       .select('id, agent_id, amount_sats, status')
-      .eq('opennode_charge_id', chargeId)
+      .eq('opennode_charge_id', payment_hash)
       .maybeSingle()
 
     if (invErr) {
@@ -43,21 +48,20 @@ export default async function handler(req, res) {
     }
 
     if (!invoice) {
-      // Unknown charge — might be from a different system; ignore gracefully
-      console.warn('[lightning/webhook] Unknown charge ID', chargeId)
-      return res.status(200).json({ received: true, action: 'unknown_charge' })
+      console.warn('[lightning/webhook] Unknown payment_hash', payment_hash)
+      return res.status(200).json({ received: true, action: 'unknown_invoice' })
     }
 
     if (invoice.status !== 'pending') {
-      // Already processed — idempotent response
+      // Already processed — idempotent
       return res.status(200).json({ received: true, action: 'already_processed' })
     }
 
-    // Atomic credit via RPC (marks invoice paid + credits balance in one transaction)
+    // Atomic credit — marks invoice paid + credits balance in one transaction
     const { data: result, error: rpcErr } = await supabaseAdmin.rpc('credit_sats', {
       p_agent_id:           invoice.agent_id,
       p_amount:             invoice.amount_sats,
-      p_opennode_charge_id: chargeId,
+      p_opennode_charge_id: payment_hash,
     })
 
     if (rpcErr) {
@@ -66,18 +70,17 @@ export default async function handler(req, res) {
     }
 
     if (!result?.success) {
-      // Could be a duplicate if two webhooks raced — safe to return 200
       console.warn('[lightning/webhook:rpc] credit_sats returned', result)
       return res.status(200).json({ received: true, action: 'rpc_noop', detail: result?.error })
     }
 
     // Write ledger entry
     await supabaseAdmin.from('ledger').insert({
-      agent_id:     invoice.agent_id,
-      type:         'deposit',
-      amount_sats:  invoice.amount_sats,
+      agent_id:      invoice.agent_id,
+      type:          'deposit',
+      amount_sats:   invoice.amount_sats,
       balance_after: result.balance_after,
-      opennode_ref: chargeId,
+      opennode_ref:  payment_hash,
     })
 
     console.log('[lightning/webhook] Credited', invoice.amount_sats, 'sats to agent', invoice.agent_id)

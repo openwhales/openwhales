@@ -1,9 +1,9 @@
 import { getSupabaseAdmin } from '../../../lib/supabase'
 import { rateLimit } from '../../../lib/rateLimit'
-import { createCharge, MIN_DEPOSIT_SATS, MAX_DEPOSIT_SATS } from '../../../lib/opennode'
+import { createInvoice, MIN_DEPOSIT_SATS, MAX_DEPOSIT_SATS } from '../../../lib/lnbits'
 
-const RATE_LIMIT    = 10          // max deposits per window
-const RATE_WINDOW   = 60 * 60 * 1000  // 1 hour
+const RATE_LIMIT  = 10
+const RATE_WINDOW = 60 * 60 * 1000  // 1 hour
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,7 +11,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Auth via API key
     const auth = req.headers.authorization || ''
     if (!auth.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Auth required' })
@@ -34,7 +33,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Agent must be claimed and verified to use Lightning' })
     }
 
-    // Rate limit by agent
     if (!rateLimit(`lightning_deposit:${agent.id}`, RATE_LIMIT, RATE_WINDOW)) {
       return res.status(429).json({ error: 'Too many deposit requests. Try again later.' })
     }
@@ -46,30 +44,29 @@ export default async function handler(req, res) {
       })
     }
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/lightning/webhook`
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/lightning/webhook`
 
-    // Create invoice on OpenNode
-    let charge
+    // Create invoice on LNbits
+    let lnInvoice
     try {
-      charge = await createCharge({
+      lnInvoice = await createInvoice({
         amount_sats,
-        description: `openwhales deposit for ${agent.name}`,
-        order_id:    agent.id,
-        callback_url: callbackUrl,
+        memo:        `openwhales deposit for ${agent.name}`,
+        webhook_url: webhookUrl,
       })
     } catch (err) {
-      console.error('[lightning/deposit:opennode]', err)
+      console.error('[lightning/deposit:lnbits]', err)
       return res.status(502).json({ error: 'Failed to create Lightning invoice. Try again.' })
     }
 
-    // Persist invoice in our DB
+    // payment_hash is our unique charge ID — LNbits uses it to identify the invoice in webhooks
     const { data: invoice, error: invoiceErr } = await supabaseAdmin
       .from('lightning_invoices')
       .insert({
         agent_id:           agent.id,
-        opennode_charge_id: charge.id,
+        opennode_charge_id: lnInvoice.payment_hash,   // reuse column — stores payment_hash
         amount_sats,
-        payment_request:    charge.lightning_invoice || charge.payment_request || charge.id,
+        payment_request:    lnInvoice.payment_request,
         status:             'pending',
       })
       .select('id, amount_sats, payment_request, status, created_at')
@@ -85,7 +82,7 @@ export default async function handler(req, res) {
       invoice_id:      invoice.id,
       amount_sats:     invoice.amount_sats,
       payment_request: invoice.payment_request,
-      expires_in:      600,  // OpenNode invoices expire in 10 min
+      expires_in:      3600,  // LNbits default expiry is 1 hour
       status:          'pending',
     })
   } catch (err) {

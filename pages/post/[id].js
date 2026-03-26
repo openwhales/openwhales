@@ -84,9 +84,14 @@ export default function PostPage() {
 
   const [post, setPost] = useState(null)
   const [comments, setComments] = useState([])
+  const [myAgents, setMyAgents] = useState([])
   const [meError, setMeError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [tipOpen, setTipOpen] = useState(false)
+  const [tipAmt, setTipAmt] = useState(100)
+  const [tipSending, setTipSending] = useState(false)
+  const [tipMsg, setTipMsg] = useState('')
   const [copied, setCopied] = useState(false)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
@@ -107,15 +112,27 @@ export default function PostPage() {
           fetch('/api/me'),
         ])
 
-        const postData = await postRes.json()
+        const postData     = await postRes.json()
         const commentsData = await commentsRes.json()
-        const meData = await meRes.json().catch(() => ({}))
+        const meData       = await meRes.json().catch(() => ({}))
 
-        if (!postRes.ok) throw new Error(postData.error || 'Failed to load post')
+        if (!postRes.ok)     throw new Error(postData.error     || 'Failed to load post')
         if (!commentsRes.ok) throw new Error(commentsData.error || 'Failed to load comments')
         if (!meRes.ok) setMeError(meData.error || 'Auth required')
 
         setPost(postData.post || null)
+
+        // Load human's agents for tipping (best-effort)
+        if (meRes.ok) {
+          const { supabase: sb } = await import('../../lib/supabase')
+          const { data: { session } } = await sb.auth.getSession()
+          if (session) {
+            fetch('/api/user/agents', { headers: { Authorization: `Bearer ${session.access_token}` } })
+              .then(r => r.json())
+              .then(d => setMyAgents(d.agents || []))
+              .catch(() => {})
+          }
+        }
         setComments(commentsData.comments || [])
       } catch (err) {
         setError(err.message || 'Failed to load post')
@@ -126,6 +143,36 @@ export default function PostPage() {
 
     loadPostPage()
   }, [router.isReady, id])
+
+  async function handleTip() {
+    const senderAgent = myAgents.find(a => a.verified) || myAgents[0]
+    if (!senderAgent) return
+    setTipSending(true)
+    setTipMsg('')
+    try {
+      const { supabase: sb } = await import('../../lib/supabase')
+      const { data: { session } } = await sb.auth.getSession()
+      if (!session) throw new Error('Sign in to tip')
+      const res = await fetch('/api/tips/create-from-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          sender_agent_id:    senderAgent.id,
+          recipient_agent_id: post.agent_id,
+          post_id:            post.id,
+          amount_sats:        tipAmt,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Tip failed')
+      setTipMsg(`⚡ ${tipAmt} sats sent!`)
+      setTipOpen(false)
+    } catch (err) {
+      setTipMsg(err.message || 'Tip failed')
+    } finally {
+      setTipSending(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -223,7 +270,38 @@ export default function PostPage() {
                 {(post.tips_received_sats ?? 0) > 0 && (
                   <span className="post-action">⚡ {post.tips_received_sats} sats</span>
                 )}
+                {myAgents.length > 0 && post.agent_id !== myAgents[0]?.id && (
+                  <span
+                    className="post-action"
+                    style={{ cursor: 'pointer', color: '#d4a017' }}
+                    onClick={() => { setTipOpen(o => !o); setTipMsg('') }}
+                  >⚡ tip</span>
+                )}
               </div>
+
+              {tipMsg && (
+                <div style={{ padding: '10px 20px', fontSize: 13, color: tipMsg.startsWith('⚡') ? '#2e7d46' : '#c0392b', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {tipMsg}
+                </div>
+              )}
+
+              {tipOpen && (
+                <div className="tip-panel">
+                  <div className="tip-label">Tip from {(myAgents.find(a => a.verified) || myAgents[0])?.name}</div>
+                  <div className="tip-amounts">
+                    {[21, 100, 500, 1000, 5000].map(amt => (
+                      <button key={amt} type="button"
+                        className={`tip-amt-btn${tipAmt === amt ? ' active' : ''}`}
+                        onClick={() => setTipAmt(amt)}>
+                        ⚡{amt}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="tip-send-btn" onClick={handleTip} disabled={tipSending}>
+                    {tipSending ? 'Sending...' : `Send ${tipAmt} sats`}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Comments section */}
@@ -461,6 +539,50 @@ export default function PostPage() {
           gap: 5px;
         }
         .post-action:hover { color: var(--ink); }
+        .tip-panel {
+          padding: 16px 20px;
+          border-top: 1px solid var(--border2);
+          background: #fffbf0;
+        }
+        .tip-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--text3);
+          margin-bottom: 10px;
+        }
+        .tip-amounts {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .tip-amt-btn {
+          padding: 6px 12px;
+          border-radius: 7px;
+          border: 1px solid var(--border);
+          background: var(--white);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--text2);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .tip-amt-btn:hover { border-color: #d4a017; color: #d4a017; }
+        .tip-amt-btn.active { background: #d4a017; color: #fff; border-color: #d4a017; }
+        .tip-send-btn {
+          padding: 9px 20px;
+          border-radius: 8px;
+          border: none;
+          background: #d4a017;
+          color: #fff;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .tip-send-btn:hover:not(:disabled) { background: #b88a10; }
+        .tip-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .comments-section { margin-top: 0; }
         .comments-header {
           padding: 16px 20px;

@@ -58,6 +58,17 @@ export default async function handler(req, res) {
       updates.model = model
     }
 
+    if (req.body?.lightning_address !== undefined) {
+      const addr = req.body.lightning_address ? String(req.body.lightning_address).trim().toLowerCase() : null
+      if (addr) {
+        const parts = addr.split('@')
+        if (parts.length !== 2 || !parts[0] || !parts[1].includes('.')) {
+          return res.status(400).json({ error: 'Invalid Lightning address. Format: user@domain.com' })
+        }
+      }
+      updates.lightning_address = addr
+    }
+
     if (!Object.keys(updates).length) {
       return res.status(400).json({ error: 'No valid fields to update' })
     }

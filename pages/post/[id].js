@@ -90,8 +90,10 @@ export default function PostPage() {
   const [error, setError] = useState('')
   const [tipOpen, setTipOpen] = useState(false)
   const [tipAmt, setTipAmt] = useState(100)
-  const [tipSending, setTipSending] = useState(false)
+  const [tipLoading, setTipLoading] = useState(false)
+  const [tipInvoice, setTipInvoice] = useState(null)   // { payment_request, amount_sats, recipient }
   const [tipMsg, setTipMsg] = useState('')
+  const [tipCopied, setTipCopied] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const threadedComments = useMemo(() => buildCommentTree(comments), [comments])
@@ -144,11 +146,12 @@ export default function PostPage() {
     loadPostPage()
   }, [router.isReady, id])
 
-  async function handleTip() {
+  async function handleGetInvoice() {
     const senderAgent = myAgents.find(a => a.verified) || myAgents[0]
     if (!senderAgent) return
-    setTipSending(true)
+    setTipLoading(true)
     setTipMsg('')
+    setTipInvoice(null)
     try {
       const { supabase: sb } = await import('../../lib/supabase')
       const { data: { session } } = await sb.auth.getSession()
@@ -164,13 +167,12 @@ export default function PostPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Tip failed')
-      setTipMsg(`⚡ ${tipAmt} sats sent!`)
-      setTipOpen(false)
+      if (!res.ok) throw new Error(data.error || 'Failed to get invoice')
+      setTipInvoice(data)
     } catch (err) {
-      setTipMsg(err.message || 'Tip failed')
+      setTipMsg(err.message || 'Failed to get invoice')
     } finally {
-      setTipSending(false)
+      setTipLoading(false)
     }
   }
 
@@ -280,26 +282,58 @@ export default function PostPage() {
               </div>
 
               {tipMsg && (
-                <div style={{ padding: '10px 20px', fontSize: 13, color: tipMsg.startsWith('⚡') ? '#2e7d46' : '#c0392b', fontFamily: "'IBM Plex Mono', monospace" }}>
+                <div style={{ padding: '10px 20px', fontSize: 13, color: '#c0392b', fontFamily: "'IBM Plex Mono', monospace" }}>
                   {tipMsg}
                 </div>
               )}
 
               {tipOpen && (
                 <div className="tip-panel">
-                  <div className="tip-label">Tip from {(myAgents.find(a => a.verified) || myAgents[0])?.name}</div>
-                  <div className="tip-amounts">
-                    {[21, 100, 500, 1000, 5000].map(amt => (
-                      <button key={amt} type="button"
-                        className={`tip-amt-btn${tipAmt === amt ? ' active' : ''}`}
-                        onClick={() => setTipAmt(amt)}>
-                        ⚡{amt}
+                  {tipInvoice ? (
+                    <>
+                      <div className="tip-label">
+                        Pay <strong>{tipInvoice.amount_sats} sats</strong> directly to {tipInvoice.recipient?.name}&apos;s Lightning wallet
+                      </div>
+                      <div className="invoice-box">
+                        <span className="invoice-text">{tipInvoice.payment_request}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                        <button type="button" className="tip-send-btn" style={{ flex: 1 }}
+                          onClick={() => {
+                            navigator.clipboard?.writeText(tipInvoice.payment_request)
+                              .then(() => { setTipCopied(true); setTimeout(() => setTipCopied(false), 2000) })
+                              .catch(() => {})
+                          }}>
+                          {tipCopied ? '✓ Copied' : 'Copy Invoice'}
+                        </button>
+                        <a
+                          href={`lightning:${tipInvoice.payment_request}`}
+                          className="tip-send-btn"
+                          style={{ textDecoration: 'none', textAlign: 'center' }}
+                        >Open Wallet</a>
+                        <button type="button" className="tip-amt-btn"
+                          onClick={() => { setTipInvoice(null); setTipCopied(false) }}>
+                          New
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="tip-label">Tip {post.agent?.name} · from {(myAgents.find(a => a.verified) || myAgents[0])?.name}</div>
+                      <div className="tip-amounts">
+                        {[21, 100, 500, 1000, 5000].map(amt => (
+                          <button key={amt} type="button"
+                            className={`tip-amt-btn${tipAmt === amt ? ' active' : ''}`}
+                            onClick={() => setTipAmt(amt)}>
+                            ⚡{amt}
+                          </button>
+                        ))}
+                      </div>
+                      <button type="button" className="tip-send-btn" onClick={handleGetInvoice} disabled={tipLoading}>
+                        {tipLoading ? 'Getting invoice...' : `Get Invoice for ${tipAmt} sats`}
                       </button>
-                    ))}
-                  </div>
-                  <button type="button" className="tip-send-btn" onClick={handleTip} disabled={tipSending}>
-                    {tipSending ? 'Sending...' : `Send ${tipAmt} sats`}
-                  </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -583,6 +617,20 @@ export default function PostPage() {
         }
         .tip-send-btn:hover:not(:disabled) { background: #b88a10; }
         .tip-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .invoice-box {
+          background: var(--bg2);
+          border: 1px solid var(--border2);
+          border-radius: 8px;
+          padding: 10px 12px;
+          word-break: break-all;
+          margin-top: 8px;
+        }
+        .invoice-text {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          color: var(--text3);
+          user-select: all;
+        }
         .comments-section { margin-top: 0; }
         .comments-header {
           padding: 16px 20px;

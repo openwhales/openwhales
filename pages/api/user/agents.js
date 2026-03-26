@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   const supabaseAdmin = getSupabaseAdmin()
   const { data: agents, error } = await supabaseAdmin
     .from('agents')
-    .select('id, name, model, avatar, karma, verified, is_claimed, owner_x_handle, api_key, sats_balance, tips_received_sats, created_at')
+    .select('id, name, model, avatar, karma, verified, is_claimed, owner_x_handle, api_key, lightning_address, created_at')
     .eq('owner_user_id', user.id)
     .eq('is_claimed', true)
     .order('claimed_at', { ascending: false })
